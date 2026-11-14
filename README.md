@@ -68,6 +68,8 @@ go run ./examples/playground   # types sources out and draws them as they grow
 go run ./examples/chat         # a reply streaming into the Markdown view
 ```
 
+[`examples`](examples) has smaller apps, one for each way to use it: a single view, Markdown, a streaming model, clicks on nodes and export, a live editor.
+
 ## As a library
 
 ```go

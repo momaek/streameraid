@@ -273,6 +273,7 @@ streameraid/
 │   └── examples/
 │       ├── playground/  # 左边模拟 AI 逐字输出，右边实时出图
 │       └── chat/        # 接入 mygo Markdown 的聊天示例
+├── examples/          # 单独的 Go module：每种用法一个小示例（hello、markdown、llm-stream、node-click、editor）
 ├── cmd/streameraid/   # 命令行：mmd 转 svg
 └── testdata/
     ├── corpus/        # 语料：Mermaid 官方文档的例子、AI 风格样例
