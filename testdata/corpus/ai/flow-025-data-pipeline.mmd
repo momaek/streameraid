@@ -1,0 +1,19 @@
+flowchart LR
+    subgraph Sources
+        direction TB
+        app[(App DB)]
+        logs[Clickstream logs]
+        crm[CRM export]
+    end
+    subgraph ETL["ETL (Airflow)"]
+        extract[Extract] --> transform[Transform] --> load[Load]
+    end
+    subgraph Warehouse
+        dw[(Snowflake)]
+    end
+    app --> extract
+    logs --> extract
+    crm --> extract
+    load --> dw
+    dw --> bi[BI dashboards]
+    dw --> ml[ML features]

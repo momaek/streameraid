@@ -1,0 +1,17 @@
+flowchart TD
+    U[User request] --> P[Planner]
+    P --> T{Need a tool?}
+    T -- yes --> S[Select tool]
+    S --> X[Execute tool]
+    X --> O[Observe result]
+    O --> P
+    T -- no --> R[Compose final answer]
+    R --> U2[Reply to user]
+
+    subgraph Tools
+        direction LR
+        W[Web search]
+        C[Code runner]
+        F[File reader]
+    end
+    S -.-> Tools

@@ -1,0 +1,10 @@
+flowchart LR
+    A[Push to GitHub] --> B[Run Tests]
+    B --> C{Tests Pass?}
+    C -->|Yes| D[Build Docker Image]
+    C -->|No| E[Notify Developer]
+    D --> F[Push to Registry]
+    F --> G[Deploy to Staging]
+    G --> H{Manual Approval}
+    H -->|Approved| I[Deploy to Production]
+    H -->|Rejected| E

@@ -1,0 +1,10 @@
+flowchart TD
+    CLOSED --> |主动打开 / SYN| SYN_SENT
+    CLOSED --> |被动打开| LISTEN
+    LISTEN --> |收到 SYN / 发送 SYN+ACK| SYN_RCVD
+    SYN_SENT --> |收到 SYN+ACK / 发送 ACK| ESTABLISHED
+    SYN_RCVD --> |收到 ACK| ESTABLISHED
+    ESTABLISHED --> |关闭 / FIN| FIN_WAIT_1
+    FIN_WAIT_1 --> |收到 ACK| FIN_WAIT_2
+    FIN_WAIT_2 --> |收到 FIN / 发送 ACK| TIME_WAIT
+    TIME_WAIT --> |2MSL 超时| CLOSED

@@ -1,0 +1,5 @@
+flowchart TD
+    A["Receive the customer support ticket from email, chat, or the web form"] --> B["Classify the ticket by urgency and product area using the triage model"]
+    B --> C{"Is it a billing question that can be answered automatically?"}
+    C -->|Yes| D["Send the templated answer and close the ticket"]
+    C -->|No| E["Assign to the on-call support engineer for that product area"]

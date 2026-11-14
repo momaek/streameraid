@@ -1,0 +1,15 @@
+flowchart TD
+    Start([Start]) --> Input[/Read input/]
+    Input --> Check{Valid?}
+    Check -- Yes --> Process[Process data]
+    Check -- No --> Error[Show error]
+    Error --> Input
+    Process --> Save[(Save to DB)]
+    Save --> End([End])
+
+    classDef startEnd fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    classDef decision fill:#fff3e0,stroke:#e65100
+    classDef error fill:#ffebee,stroke:#c62828
+    class Start,End startEnd
+    class Check decision
+    class Error error

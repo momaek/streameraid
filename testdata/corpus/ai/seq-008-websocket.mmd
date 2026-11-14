@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant Browser
+    participant Server
+
+    Browser->>Server: HTTP GET /chat (Upgrade: websocket)
+    Server-->>Browser: 101 Switching Protocols
+    Note over Browser,Server: WebSocket connection established
+    loop Every 30 seconds
+        Browser->>Server: ping
+        Server-->>Browser: pong
+    end
+    Browser-xServer: Connection lost
+    opt Auto reconnect
+        Browser->>Server: Reconnect
+    end

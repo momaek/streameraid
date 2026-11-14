@@ -1,0 +1,12 @@
+flowchart LR
+    A[Raw Data] --> B[Data Cleaning]
+    B --> C[Feature Engineering]
+    C --> D[Train/Test Split]
+    D --> E[Model Training]
+    E --> F[Evaluation]
+    F --> G{Good enough?}
+    G -->|No| H[Tune Hyperparameters]
+    H --> E
+    G -->|Yes| I[Deploy Model]
+    I --> J[Monitor]
+    J -.->|Data drift| A

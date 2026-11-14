@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant U as 用户
+    participant F as 前端
+    participant B as 后端
+    participant D as 数据库
+
+    U->>F: 输入用户名和密码
+    F->>B: POST /api/login
+    B->>D: 查询用户信息
+    D-->>B: 返回用户记录
+    alt 密码正确
+        B-->>F: 200 OK + Token
+        F-->>U: 跳转到首页
+    else 密码错误
+        B-->>F: 401 Unauthorized
+        F-->>U: 显示错误提示
+    end

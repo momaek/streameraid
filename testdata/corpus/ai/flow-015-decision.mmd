@@ -1,0 +1,12 @@
+flowchart TD
+    A{Is the problem reproducible?} -->|Yes| B{Recent deploy?}
+    A -->|No| C[Add logging and wait]
+    B -->|Yes| D[Roll back]
+    B -->|No| E{Check dependencies}
+    E -->|DB slow| F[Check slow query log]
+    E -->|Third-party API| G[Check status page]
+    E -->|Unknown| H[Profile the service]
+    D --> I[Verify fix]
+    F --> I
+    G --> I
+    H --> I
