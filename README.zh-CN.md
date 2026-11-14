@@ -68,6 +68,8 @@ go run ./examples/playground   # 逐字"打出"源码，同时把图画出来
 go run ./examples/chat         # 一段回复流式输出到 Markdown 组件
 ```
 
+[`examples`](examples) 目录里有更小的示例，每种用法一个：单个视图、Markdown、流式输出的模型、点击节点和导出、实时编辑器。
+
 ## 作为库使用
 
 ```go
