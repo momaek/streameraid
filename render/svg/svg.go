@@ -212,7 +212,12 @@ func num(f float64) string {
 	if math.Abs(f) < 1e-9 {
 		return "0"
 	}
-	return strconv.FormatFloat(math.Round(f*100)/100, 'f', -1, 64)
+	// Snap to a millionth first: a value on the boundary between two
+	// hundredths, as 216.265, comes out a hair above it on one CPU and a
+	// hair below on another (arm64 fuses multiplies and adds, amd64 does
+	// not), and would round to different hundredths.
+	snapped := math.Round(f*1e6) / 1e4
+	return strconv.FormatFloat(math.Round(snapped)/100, 'f', -1, 64)
 }
 
 func pathData(p geom.Path) string {
