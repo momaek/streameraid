@@ -1,0 +1,8 @@
+sequenceDiagram
+    participant C as Client
+    participant S as Server
+    participant DB as Database
+    C->>+S: GET /orders/42
+    S->>+DB: SELECT * FROM orders WHERE id = 42
+    DB-->>-S: row
+    S-->>-C: 200 OK (JSON)

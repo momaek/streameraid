@@ -1,0 +1,10 @@
+sequenceDiagram
+    participant C as 客户端
+    participant S as 服务端
+    Note over C,S: 三次握手
+    C->>S: SYN (seq=x)
+    S->>C: SYN+ACK (seq=y, ack=x+1)
+    C->>S: ACK (ack=y+1)
+    Note over C,S: 连接建立，开始传输数据
+    C->>S: 数据
+    S-->>C: ACK

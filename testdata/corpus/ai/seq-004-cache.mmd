@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant Client
+    participant API
+    participant Cache as Redis
+    participant DB as MySQL
+
+    Client->>API: 请求数据
+    API->>Cache: GET key
+    alt 缓存命中
+        Cache-->>API: 返回缓存数据
+    else 缓存未命中
+        Cache-->>API: nil
+        API->>DB: 查询数据库
+        DB-->>API: 返回结果
+        API->>Cache: SET key（过期时间 5 分钟）
+    end
+    API-->>Client: 返回数据

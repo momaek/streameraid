@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.x"
+      - name: gofmt
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test ./...
+      - name: fuzz the parsers briefly
+        run: |
+          go test ./flow -run '^$' -fuzz FuzzParse -fuzztime 30s
+          go test ./seq -run '^$' -fuzz FuzzParse -fuzztime 30s
+
+  mygo:
+    # The MyGo renderer's tests draw text with the system's fonts.
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: mygo
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.27.x"
+          cache-dependency-path: mygo/go.sum
+      - run: go vet ./...
+      - run: go test ./...
+      - run: go build ./examples/...

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="124" height="138" viewBox="0 0 124 138" font-family="-apple-system, BlinkMacSystemFont, &#34;Segoe UI&#34;, &#34;Helvetica Neue&#34;, Arial, &#34;PingFang SC&#34;, &#34;Hiragino Sans GB&#34;, &#34;Microsoft YaHei&#34;, &#34;Noto Sans CJK SC&#34;, sans-serif" font-size="14">
+<g class="edge" data-id="A-&gt;B#0"><path d="M61.9,46.4L61.9,50.13C61.9,53.87 61.9,61.33 61.9,68.8C61.9,76.27 61.9,83.73 61.9,87.47L61.9,91.2" fill="none" stroke="#5b6470" stroke-width="1.54" stroke-linecap="round"/><path d="M61.9,91.2L57.36,81.12L66.44,81.12Z" fill="#5b6470"/></g>
+<g class="node" data-id="A"><path d="M8.4,8.4L115.4,8.4L115.4,46.4L8.4,46.4Z" fill="#f3f4ff" stroke="#7b83d8" stroke-width="1.26"/><text fill="#1f2328" text-anchor="middle"><tspan x="61.9" y="32.3">Christmas</tspan></text></g>
+<g class="node" data-id="B"><path d="M12.9,91.2L110.9,91.2L110.9,129.2L12.9,129.2Z" fill="#f3f4ff" stroke="#7b83d8" stroke-width="1.26"/><text fill="#1f2328" text-anchor="middle"><tspan x="61.9" y="115.1">Shopping</tspan></text></g>
+</svg>

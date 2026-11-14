@@ -1,0 +1,6 @@
+flowchart LR
+    A[Source] ==> B[Critical path]
+    B ==> C[Target]
+    A -.-> D[Optional step]
+    D -.-> C
+    A --- E[Related note]

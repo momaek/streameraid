@@ -1,0 +1,17 @@
+sequenceDiagram
+    participant W as Worker
+    participant Q as Queue
+    participant S as Downstream Service
+
+    W->>Q: Poll for job
+    Q-->>W: Job #123
+    loop Up to 3 attempts
+        W->>S: Process job
+        alt Success
+            S-->>W: 200 OK
+        else Transient failure
+            S-->>W: 503 Service Unavailable
+            W->>W: Back off (exponential)
+        end
+    end
+    W->>Q: Ack job

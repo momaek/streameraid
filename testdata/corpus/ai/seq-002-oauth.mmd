@@ -1,0 +1,17 @@
+sequenceDiagram
+    autonumber
+    actor User
+    participant App as Client App
+    participant Auth as Authorization Server
+    participant API as Resource Server
+
+    User->>App: Click "Sign in"
+    App->>Auth: Authorization request
+    Auth->>User: Login & consent page
+    User->>Auth: Credentials + consent
+    Auth-->>App: Authorization code
+    App->>Auth: Exchange code for token
+    Auth-->>App: Access token
+    App->>API: Request with access token
+    API-->>App: Protected resource
+    App-->>User: Show data

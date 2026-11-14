@@ -1,0 +1,8 @@
+graph LR
+    src[Source code] --> lex[Lexer]
+    lex -->|tokens| parse[Parser]
+    parse -->|AST| sem[Semantic analysis]
+    sem --> ir[IR generation]
+    ir --> opt[Optimizer]
+    opt --> cg[Code generation]
+    cg --> bin[Machine code]

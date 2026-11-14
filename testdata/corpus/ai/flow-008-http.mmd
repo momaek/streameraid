@@ -1,0 +1,14 @@
+flowchart TD
+    A[浏览器输入 URL] --> B[DNS 解析]
+    B --> C[建立 TCP 连接<br/>三次握手]
+    C --> D[TLS 握手]
+    D --> E[发送 HTTP 请求]
+    E --> F[服务器处理请求]
+    F --> G[返回 HTTP 响应]
+    G --> H[浏览器解析 HTML]
+    H --> I[构建 DOM 树]
+    H --> J[构建 CSSOM 树]
+    I --> K[渲染树]
+    J --> K
+    K --> L[布局 Layout]
+    L --> M[绘制 Paint]

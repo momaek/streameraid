@@ -1,0 +1,10 @@
+flowchart LR
+    Q["User Question"] --> E1["Embedding Model"]
+    E1 --> VS[("Vector Store")]
+    VS -->|"Top-k chunks"| P["Prompt Builder"]
+    Q --> P
+    P --> LLM["LLM (e.g. GPT-4 / Claude)"]
+    LLM --> A["Answer"]
+    subgraph Indexing["Offline Indexing"]
+        D["Documents"] --> S["Splitter"] --> E2["Embedding Model"] --> VS
+    end

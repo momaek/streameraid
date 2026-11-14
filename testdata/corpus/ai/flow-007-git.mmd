@@ -1,0 +1,7 @@
+graph LR
+    A[Working Directory] -->|git add| B[Staging Area]
+    B -->|git commit| C[Local Repository]
+    C -->|git push| D[Remote Repository]
+    D -->|git fetch| C
+    D -->|git pull| A
+    C -->|git checkout| A
