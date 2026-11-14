@@ -1,0 +1,32 @@
+graph TB
+    subgraph Client["客户端"]
+        Web[Web 应用]
+        Mobile[移动端 App]
+    end
+
+    subgraph Gateway["API 网关层"]
+        GW[Nginx / Kong]
+    end
+
+    subgraph Services["微服务"]
+        Auth[认证服务]
+        Order[订单服务]
+        Pay[支付服务]
+    end
+
+    subgraph Data["数据层"]
+        DB[(MySQL)]
+        Cache[(Redis)]
+        MQ[[Kafka]]
+    end
+
+    Web --> GW
+    Mobile --> GW
+    GW --> Auth
+    GW --> Order
+    GW --> Pay
+    Order --> DB
+    Order --> Cache
+    Order --> MQ
+    Pay --> MQ
+    Auth --> Cache

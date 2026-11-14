@@ -1,0 +1,13 @@
+flowchart TD
+    start((开始)) --> phone[/输入手机号/]
+    phone --> code[发送验证码]
+    code --> verify{验证码正确?}
+    verify -->|否| retry{重试次数 < 5?}
+    retry -->|是| code
+    retry -->|否| block[锁定 30 分钟]
+    verify -->|是| exists{用户已存在?}
+    exists -->|是| login[直接登录]
+    exists -->|否| create[创建账号] --> profile[完善资料]
+    login & profile --> home[进入首页]
+    block --> stop((结束))
+    home --> stop

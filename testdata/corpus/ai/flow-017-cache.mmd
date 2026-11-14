@@ -1,0 +1,9 @@
+flowchart TD
+    Req[请求数据] --> HitCache{缓存命中?}
+    HitCache -- 是 --> Return[直接返回]
+    HitCache -- 否 --> Lock{获取分布式锁?}
+    Lock -- 成功 --> QueryDB[(查询数据库)]
+    QueryDB --> SetCache[写入缓存<br/>设置过期时间]
+    SetCache --> Unlock[释放锁]
+    Unlock --> Return
+    Lock -- 失败 --> Sleep[休眠 50ms] --> HitCache

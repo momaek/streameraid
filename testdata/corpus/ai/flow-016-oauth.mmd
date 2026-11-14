@@ -1,0 +1,9 @@
+flowchart LR
+    A[Client App] -->|1. Authorization request| B[Authorization Server]
+    B -->|2. Login page| U[User]
+    U -->|3. Consent| B
+    B -->|4. Authorization code| A
+    A -->|5. Code + client secret| B
+    B -->|6. Access token| A
+    A -->|7. API call with token| R[Resource Server]
+    R -->|8. Protected data| A

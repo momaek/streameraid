@@ -1,0 +1,11 @@
+sequenceDiagram
+    participant A as Service A
+    participant B as Service B
+    rect rgb(230, 245, 255)
+        Note over A,B: Transaction scope
+        A->>B: BEGIN
+        A->>B: UPDATE accounts
+        B-->>A: OK
+        A->>B: COMMIT
+    end
+    B-->>A: done

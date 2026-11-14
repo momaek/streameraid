@@ -1,0 +1,8 @@
+flowchart TD
+    Start --> Call[Call external API]
+    Call --> Ok{Status 200?}
+    Ok -->|yes| Parse[Parse response]
+    Ok -->|no| Retry{Retries < 3?}
+    Retry -->|yes| Wait[Exponential backoff] --> Call
+    Retry -->|no| Fail[Raise error]
+    Parse --> Done[Return result]

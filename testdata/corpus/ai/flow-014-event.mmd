@@ -1,0 +1,20 @@
+flowchart TB
+    subgraph Producers
+        P1[Order Service]
+        P2[Inventory Service]
+    end
+    subgraph Broker["Message Broker (Kafka)"]
+        T1[orders topic]
+        T2[inventory topic]
+    end
+    subgraph Consumers
+        C1[Email Notifier]
+        C2[Analytics]
+        C3[Billing]
+    end
+    P1 --> T1
+    P2 --> T2
+    T1 --> C1
+    T1 --> C2
+    T1 --> C3
+    T2 --> C2

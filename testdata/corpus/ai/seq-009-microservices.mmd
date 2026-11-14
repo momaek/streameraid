@@ -1,0 +1,20 @@
+sequenceDiagram
+    participant GW as API Gateway
+    participant Order as Order Service
+    participant Inv as Inventory Service
+    participant Pay as Payment Service
+    participant MQ as Message Queue
+
+    GW->>+Order: Create order
+    Order->>+Inv: Reserve stock
+    Inv-->>-Order: Reserved
+    Order->>+Pay: Charge customer
+    critical Payment must succeed
+        Pay-->>Order: Charged
+    option Card declined
+        Pay-->>Order: Declined
+        Order->>Inv: Release stock
+    end
+    deactivate Pay
+    Order-)MQ: OrderCreated event
+    Order-->>-GW: 201 Created

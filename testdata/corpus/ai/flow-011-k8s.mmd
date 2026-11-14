@@ -1,0 +1,11 @@
+graph LR
+    User((User)) --> Ingress
+    subgraph Cluster [Kubernetes Cluster]
+        Ingress[Ingress Controller] --> SvcA[Service A]
+        Ingress --> SvcB[Service B]
+        SvcA --> PodA1[Pod A-1]
+        SvcA --> PodA2[Pod A-2]
+        SvcB --> PodB1[Pod B-1]
+        PodA1 & PodA2 --> PVC[(Persistent Volume)]
+    end
+    PodB1 --> ExtDB[(External DB)]

@@ -1,0 +1,5 @@
+flowchart LR
+    A[Service A] -->|request| B[Service B]
+    B -->|response| A
+    A -->|heartbeat| B
+    A --> A

@@ -1,0 +1,11 @@
+# Binaries built in place
+/streameraid
+/mygo/playground
+/mygo/chat
+*.test
+*.out
+
+# Snapshots written by the tests when STREAMERAID_SNAPSHOTS is set here
+/snapshots/
+
+.DS_Store

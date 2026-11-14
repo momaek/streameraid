@@ -1,0 +1,5 @@
+---
+title: Request lifecycle
+---
+flowchart LR
+    req[Request] --> mw1[Logger middleware] --> mw2[Auth middleware] --> h[Handler] --> res[Response]

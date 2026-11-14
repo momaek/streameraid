@@ -1,0 +1,14 @@
+sequenceDiagram
+    actor User
+    participant Agent
+    participant LLM
+    participant Tool as Search Tool
+
+    User->>Agent: What's the weather in Paris?
+    Agent->>LLM: Prompt + tool definitions
+    LLM-->>Agent: tool_call: search("Paris weather")
+    Agent->>Tool: search("Paris weather")
+    Tool-->>Agent: 18°C, partly cloudy
+    Agent->>LLM: Tool result
+    LLM-->>Agent: "It's 18°C and partly cloudy in Paris."
+    Agent-->>User: Final answer
