@@ -61,7 +61,7 @@ const branchColors = 8
 // bracket is not closed, or with text after its closing bracket, is still
 // drawn, so that the names of the nodes after it stay the same.
 func Parse(src string, final bool) *flow.Graph {
-	p := &parser{g: flow.NewGraph(), children: map[string]int{}}
+	p := &parser{g: flow.NewGraph(), children: map[string]int{}, icons: map[string]string{}}
 	p.g.Final = final
 	src = strings.ReplaceAll(src, "\r\n", "\n")
 	complete := final || strings.HasSuffix(src, "\n")
@@ -103,6 +103,8 @@ type parser struct {
 	// last is the node the last node line made, which icons and classes
 	// decorate.
 	last string
+	// icons are the glyphs of the nodes' icons, drawn before their labels.
+	icons map[string]string
 	// inAccDescr is set inside an accDescr { ... } block.
 	inAccDescr bool
 }
@@ -175,10 +177,7 @@ func (p *parser) parseLine(line string, tail bool) {
 	}
 	switch {
 	case strings.HasPrefix(t, "::icon("):
-		// Icons are not drawn.
-		if !tail && p.last == "" && p.root == "" {
-			p.problem("an icon needs a node before it")
-		}
+		p.icon(t[len("::icon("):])
 		return
 	case strings.HasPrefix(t, ":::"):
 		p.classes(t[3:])
@@ -213,6 +212,25 @@ func (p *parser) header(t string, tail bool) {
 		return
 	}
 	p.g.HasHeader = true
+}
+
+// icon reads the classes of ::icon(classes) and gives the last node the
+// glyph of the icon, if it has one: see Glyph.
+func (p *parser) icon(rest string) {
+	classes, closed := strings.CutSuffix(strings.TrimSpace(rest), ")")
+	if !closed {
+		p.problem("::icon( is missing its closing )")
+		return
+	}
+	if p.last == "" {
+		if p.root == "" {
+			p.problem("an icon needs a node before it")
+		}
+		return
+	}
+	if g := Glyph(classes); g != "" {
+		p.icons[p.last] = g
+	}
 }
 
 func (p *parser) classes(rest string) {
@@ -331,6 +349,13 @@ func (p *parser) node(line string, tail bool) {
 
 func (p *parser) finish() {
 	g := p.g
+	for id, glyph := range p.icons {
+		if n := g.Nodes[id]; n.Label != "" {
+			n.Label = glyph + " " + n.Label
+		} else {
+			n.Label = glyph
+		}
+	}
 	if g.Final && !g.HasHeader && len(g.Problems) == 0 {
 		g.Problems = append(g.Problems, flow.Problem{Msg: "missing mindmap header"})
 	}
@@ -354,6 +379,8 @@ var shapes = []struct {
 	{"((", "))", flow.Circle},
 	{"))", "((", flow.Bang},
 	{"{{", "}}", flow.Hexagon},
+	// (-text-) is Mermaid's default shape, as plain text is.
+	{"(-", "-)", flow.Round},
 	{"(", ")", flow.Round},
 	{")", "(", flow.Cloud},
 	{"[", "]", flow.Rect},
@@ -392,6 +419,11 @@ func scanNode(s string, tail bool) (nodeRef, string) {
 		return text(), ""
 	}
 	content, after, closed := splitLabel(rest, close)
+	if !closed && !tail && close == "-)" {
+		// id(-1 °C) is a round node whose label starts with a dash.
+		sh, close = flow.Round, ")"
+		content, after, closed = splitLabel("-"+rest, close)
+	}
 	if !closed {
 		if tail {
 			// What may be the start of the closing bracket is not label.

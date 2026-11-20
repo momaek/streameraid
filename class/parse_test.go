@@ -100,6 +100,47 @@ class Plain
 	}
 }
 
+// TestClassifiers checks that static members are underlined and
+// abstract ones in italics, wherever the classifier is written.
+func TestClassifiers(t *testing.T) {
+	g := mustParse(t, `classDiagram
+class Shape {
+    +int count$
+    +String name
+    +area()* double
+    +draw()*
+    +create()$ Shape
+    +reset() void$
+    +id() int
+}
+Shape : +String kind$
+`)
+	secs := g.Nodes["Shape"].Table.Sections
+	attrs, methods := secs[1], secs[2]
+	got := func(s flow.Section) []flow.RowStyle {
+		var out []flow.RowStyle
+		for i := range s.Rows {
+			out = append(out, s.RowStyle(i))
+		}
+		return out
+	}
+	if a := got(attrs); !reflect.DeepEqual(a, []flow.RowStyle{flow.RowUnderline, 0, flow.RowUnderline}) {
+		t.Errorf("attribute styles %v (rows %v)", a, attrs.Rows)
+	}
+	want := []flow.RowStyle{flow.RowItalic, flow.RowItalic, flow.RowUnderline, flow.RowUnderline, 0}
+	if m := got(methods); !reflect.DeepEqual(m, want) {
+		t.Errorf("method styles %v (rows %v)", m, methods.Rows)
+	}
+	if r := rows(g.Nodes["Shape"]); r != "Shape|+int count;+String name;+String kind|+area() : double;+draw();+create() : Shape;+reset() : void;+id() : int" {
+		t.Errorf("rows %s", r)
+	}
+	// A classifier coming in restyles the row: the node changes.
+	a, b := Parse("classDiagram\nA : +f()\n", true), Parse("classDiagram\nA : +f()$\n", true)
+	if d := flow.Compare(a, b); len(d.ChangedNodes) != 1 {
+		t.Errorf("diff %+v", d)
+	}
+}
+
 func TestMemberLines(t *testing.T) {
 	g := mustParse(t, "classDiagram\nAnimal : +int age\nAnimal : +isMammal()\nAnimal: +mate()\n")
 	if got := rows(g.Nodes["Animal"]); got != "Animal|+int age|+isMammal();+mate()" {
@@ -217,6 +258,19 @@ Triangle <|-- Free
 	}
 	if g := Parse("classDiagram\nnamespace X {\nclass A\n", false); !g.Subgraphs["X"].Open || len(g.Problems) > 0 {
 		t.Error("namespace not open while streaming")
+	}
+	// A namespace may have a label.
+	g = mustParse(t, "classDiagram\nnamespace Auth[\"Authentication Service\"] {\n  class A\n}\nnamespace B[Billing] {\n}\n")
+	if sg := g.Subgraphs["Auth"]; sg == nil || sg.Title != "Authentication Service" || g.Nodes["A"].Subgraph != "Auth" {
+		t.Errorf("Auth %+v", sg)
+	}
+	if sg := g.Subgraphs["B"]; sg == nil || sg.Title != "Billing" {
+		t.Errorf("B %+v", sg)
+	}
+	for _, tail := range []string{"namespace Auth[\"Authen", "namespace Auth[\"Authentication Service\"]", "namespace Auth[\"Authentication Service\"] "} {
+		if g := Parse("classDiagram\n"+tail, false); len(g.Subgraphs) > 0 || len(g.Problems) > 0 {
+			t.Errorf("%q: subgraphs %v problems %+v", tail, g.SubgraphOrder, g.Problems)
+		}
 	}
 }
 

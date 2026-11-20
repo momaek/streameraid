@@ -82,6 +82,20 @@ func TestStatesAndTransitions(t *testing.T) {
 	}
 }
 
+func TestChain(t *testing.T) {
+	g := mustParse(t, `stateDiagram-v2
+    [*] --> Idle --> Running --> Done --> [*]
+    Running-->Paused-->Running : resume
+`)
+	want := []string{"[*]start>Idle", "Idle>Running", "Running>Done", "Done>[*]end", "Running>Paused", "Paused>Running|resume"}
+	if got := edgeList(g); !reflect.DeepEqual(got, want) {
+		t.Fatalf("edges %v", got)
+	}
+	if got := g.NodeOrder; !reflect.DeepEqual(got, []string{"[*]start", "Idle", "Running", "Done", "[*]end", "Paused"}) {
+		t.Fatalf("nodes %v", got)
+	}
+}
+
 func TestDescriptions(t *testing.T) {
 	g := mustParse(t, `stateDiagram-v2
     state "Long name" as L
@@ -326,6 +340,8 @@ func TestProblems(t *testing.T) {
 		"stateDiagram-v2\nnote over A : x\n",
 		"stateDiagram-v2\nstate \"open\n",
 		"stateDiagram-v2\nA --> B C\n",
+		"stateDiagram-v2\nA --> B -->\n",
+		"stateDiagram-v2\nA --> [*] --> B\n",
 	} {
 		if g := Parse(src, true); len(g.Problems) == 0 {
 			t.Errorf("%q: no problems", src)
@@ -348,6 +364,11 @@ func TestStreamingTail(t *testing.T) {
 		{h + "A --> B:", []string{"A", "B"}, []string{"A>B"}},
 		{h + "A --> B::", []string{"A", "B"}, []string{"A>B"}},
 		{h + "A --> B : la", []string{"A", "B"}, []string{"A>B|la"}},
+		{h + "A --> B -", []string{"A", "B"}, []string{"A>B"}},
+		{h + "A --> B --> ", []string{"A", "B"}, []string{"A>B"}},
+		{h + "A --> B --> C", []string{"A", "B"}, []string{"A>B"}},
+		{h + "A --> B --> C ", []string{"A", "B", "C"}, []string{"A>B", "B>C"}},
+		{h + "A-->B-->C : g", []string{"A", "B", "C"}, []string{"A>B", "B>C|g"}},
 		{h + "[*", nil, nil},
 		{h + "[*] --> [*", []string{"[*]start"}, nil},
 		{h + "[*] --> [*]", []string{"[*]start", "[*]end"}, []string{"[*]start>[*]end"}},

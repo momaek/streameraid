@@ -1,5 +1,20 @@
 classDiagram
-class Shape
-link Shape "https://www.github.com" "This is a tooltip for a link"
-class Shape2
-click Shape2 href "https://www.github.com" "This is a tooltip for a link"
+    namespace Platform {
+        namespace Auth {
+            class UserService {
+                +login()
+                +logout()
+            }
+        }
+        namespace Data {
+            class Repository {
+                +find()
+                +save()
+            }
+        }
+        class Gateway {
+            +route()
+        }
+    }
+    Gateway --> UserService : delegates
+    Gateway --> Repository : delegates
