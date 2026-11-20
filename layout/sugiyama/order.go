@@ -2,6 +2,7 @@ package sugiyama
 
 import (
 	"math"
+	"slices"
 	"sort"
 )
 
@@ -14,7 +15,10 @@ func (s *scopeLayout) order() {
 	best := s.snapshot()
 	bestCross := s.crossings()
 	stall := 0
-	for iter := 0; iter < 24 && stall < 4 && bestCross > 0; iter++ {
+	for iter := 0; iter < 24 && stall < 6 && bestCross > 0; iter++ {
+		// Every other pair of sweeps breaks ties the other way: two nodes
+		// at the same mean may cross less in the order not tried yet.
+		s.flipTies = iter%4 >= 2
 		if iter%2 == 0 {
 			for l := 1; l < len(s.layers); l++ {
 				s.sortLayer(l, true)
@@ -30,8 +34,57 @@ func (s *scopeLayout) order() {
 			stall++
 		}
 	}
+	s.flipTies = false
 	s.restore(best)
+	if bestCross > 0 {
+		s.transpose()
+	}
 	s.alignSiblings()
+}
+
+// transpose swaps neighbors in a rank while that cuts the crossings of
+// their edges: the sweeps place a node at the mean of its neighbors, and
+// two nodes at the same mean keep their order even when the other one
+// crosses less. Only nodes of the same subgraphs swap, so that subgraphs
+// stay together.
+func (s *scopeLayout) transpose() {
+	for pass := 0; pass < 8; pass++ {
+		improved := false
+		for l, layer := range s.layers {
+			for i := 0; i+1 < len(layer); i++ {
+				a, b := layer[i], layer[i+1]
+				if a.kind == kBorderL || a.kind == kBorderR || b.kind == kBorderL || b.kind == kBorderR || !slices.Equal(a.path, b.path) {
+					continue
+				}
+				if pairCrossings(b, a) < pairCrossings(a, b) {
+					layer[i], layer[i+1] = b, a
+					s.renumber(l)
+					improved = true
+				}
+			}
+		}
+		if !improved {
+			return
+		}
+	}
+}
+
+// pairCrossings counts the crossings between the edges of a and b, with a
+// to the left of b, in the ranks above and below.
+func pairCrossings(a, b *lnode) float64 {
+	c := 0.0
+	count := func(x, y []ladj) {
+		for _, p := range x {
+			for _, q := range y {
+				if p.n.order > q.n.order {
+					c += p.w * q.w
+				}
+			}
+		}
+	}
+	count(a.up, b.up)
+	count(a.down, b.down)
+	return c
 }
 
 // alignSiblings gives subgraphs side by side the same order on every rank,
@@ -317,6 +370,9 @@ func (s *scopeLayout) hsort(nodes []*lnode, depth int, bary map[*lnode]float64) 
 	sort.SliceStable(units, func(i, j int) bool {
 		if math.Abs(units[i].key-units[j].key) > 1e-9 {
 			return units[i].key < units[j].key
+		}
+		if s.flipTies {
+			return units[i].first > units[j].first
 		}
 		return units[i].first < units[j].first
 	})

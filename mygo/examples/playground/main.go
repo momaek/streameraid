@@ -134,6 +134,90 @@ var samples = []sample{
     classDef io fill:#e1f5fe,stroke:#0277bd
     class U,U2 io
 `},
+	{"状态图", `stateDiagram-v2
+    [*] --> 待支付
+    待支付 --> 已支付 : 支付成功
+    待支付 --> 已取消 : 超时未支付
+    已支付 --> 已发货 : 商家发货
+    已发货 --> 已完成 : 确认收货
+    已发货 --> 退款中 : 申请退款
+    退款中 --> 已取消 : 退款完成
+    已完成 --> [*]
+    已取消 --> [*]
+`},
+	{"类图", `classDiagram
+    class Animal {
+        <<abstract>>
+        +String name
+        +int age
+        +makeSound() void
+    }
+    class Dog {
+        +String breed
+        +fetch() void
+    }
+    class Cat {
+        +bool indoor
+        +climb() void
+    }
+    class Owner {
+        +String name
+        +adopt(Animal a)
+    }
+    Animal <|-- Dog
+    Animal <|-- Cat
+    Owner "1" o-- "*" Animal : owns
+`},
+	{"ER 图", `erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ LINE_ITEM : contains
+    PRODUCT ||--o{ LINE_ITEM : "ordered in"
+    CUSTOMER {
+        int id PK
+        string name
+        string email
+    }
+    ORDER {
+        int id PK
+        int customer_id FK
+        date created_at
+    }
+    LINE_ITEM {
+        int order_id FK
+        int product_id FK
+        int quantity
+    }
+    PRODUCT {
+        int id PK
+        string title
+        decimal price
+    }
+`},
+	{"思维导图", `mindmap
+  root((学习 Go))
+    基础
+      语法
+      类型系统
+      错误处理
+    并发
+      goroutine
+      channel
+      sync 包
+    工程
+      模块
+      测试
+      性能分析
+    生态
+      Web 框架
+      数据库
+`},
+	{"饼图", `pie title 流量来源
+    "搜索引擎" : 42.5
+    "直接访问" : 23.1
+    "社交媒体" : 18.4
+    "外部链接" : 9.6
+    "邮件" : 6.4
+`},
 }
 
 type app struct {

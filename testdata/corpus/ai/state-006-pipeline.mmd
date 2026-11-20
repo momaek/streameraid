@@ -1,0 +1,19 @@
+stateDiagram-v2
+    state fork_tests <<fork>>
+    state join_tests <<join>>
+
+    [*] --> Checkout
+    Checkout --> Build
+    Build --> fork_tests
+    fork_tests --> UnitTests
+    fork_tests --> IntegrationTests
+    fork_tests --> Lint
+    UnitTests --> join_tests
+    IntegrationTests --> join_tests
+    Lint --> join_tests
+    join_tests --> Deploy
+    Deploy --> [*]
+
+    Build --> Failed : compile error
+    join_tests --> Failed : any check failed
+    Failed --> [*]

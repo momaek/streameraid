@@ -1,0 +1,45 @@
+erDiagram
+    ORGANIZATION ||--|{ MEMBERSHIP : has
+    USER ||--o{ MEMBERSHIP : "belongs via"
+    ORGANIZATION ||--o{ PROJECT : owns
+    PROJECT ||--o{ API_KEY : issues
+    ORGANIZATION ||--|| SUBSCRIPTION : "is billed through"
+    SUBSCRIPTION }o--|| PLAN : "is on"
+
+    ORGANIZATION {
+        bigint id PK
+        string slug UK
+        string name
+    }
+    USER {
+        bigint id PK
+        string email UK
+        string password_hash
+    }
+    MEMBERSHIP {
+        bigint org_id PK, FK
+        bigint user_id PK, FK
+        string role "owner, admin or member"
+    }
+    PROJECT {
+        bigint id PK
+        bigint org_id FK
+        string name
+    }
+    API_KEY {
+        bigint id PK
+        bigint project_id FK
+        string prefix
+        timestamp revoked_at "null while active"
+    }
+    SUBSCRIPTION {
+        bigint id PK
+        bigint org_id FK
+        bigint plan_id FK
+        date renews_on
+    }
+    PLAN {
+        bigint id PK
+        string name
+        int monthly_price_cents
+    }

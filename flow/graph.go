@@ -65,10 +65,22 @@ const (
 	ParallelogramAlt              // A[\text\]
 	Trapezoid                     // A[/text\]
 	TrapezoidAlt                  // A[\text/]
+
+	// The shapes of other kinds of diagrams drawn as graphs.
+
+	Start     // the start of a state diagram: a filled dot
+	End       // an end of a state diagram: a dot in a ring
+	Choice    // a choice of a state diagram: a small diamond, no label
+	Bar       // a fork or join of a state diagram: a filled bar across the ranks
+	Note      // a note: a box with a folded corner, in the colors of notes
+	Sectioned // a box of sections, Node.Table: a class, an entity
+	Cloud     // a mind map's cloud
+	Bang      // a mind map's bang: a burst
 )
 
 var shapeNames = [...]string{"rect", "round", "stadium", "subroutine", "cylinder", "circle", "doublecircle",
-	"asymmetric", "diamond", "hexagon", "parallelogram", "parallelogram-alt", "trapezoid", "trapezoid-alt"}
+	"asymmetric", "diamond", "hexagon", "parallelogram", "parallelogram-alt", "trapezoid", "trapezoid-alt",
+	"start", "end", "choice", "bar", "note", "sectioned", "cloud", "bang"}
 
 func (s Shape) String() string {
 	if int(s) < len(shapeNames) {
@@ -95,6 +107,21 @@ const (
 	ArrowNormal       // >
 	ArrowCircle       // o
 	ArrowCross        // x
+
+	// The ends of relations in class diagrams.
+
+	ArrowTriangle // <| a hollow triangle: inheritance, realization
+	ArrowDiamond  // *  a filled diamond: composition
+	ArrowHollow   // o  a hollow diamond: aggregation
+	ArrowOpen     // <  an open arrowhead: association, dependency
+	ArrowLollipop // () a hollow circle: a provided interface
+
+	// The ends of relationships in ER diagrams, in crow's foot notation.
+
+	ArrowOne      // || exactly one
+	ArrowZeroOne  // |o zero or one
+	ArrowMany     // }| one or more
+	ArrowZeroMany // }o zero or more
 )
 
 // Style is the subset of CSS a flowchart's classDef, style and linkStyle
@@ -153,6 +180,34 @@ type Node struct {
 	// Defined tells whether the source gave the node a shape or label,
 	// rather than only naming it.
 	Defined bool
+	// Table holds the sections of a Sectioned node; Label is then its first
+	// line, for what names the node (a tooltip, a click target).
+	Table *Table
+	// Series, when above 0, colors the node with the series color of that
+	// number (from 1), unless a style sets its colors: a mind map's
+	// branches.
+	Series int
+}
+
+// Table is the content of a box of sections, one above the other, split
+// by lines: the name, attributes and methods of a class; the name and
+// attributes of an entity.
+type Table struct {
+	Sections []Section
+}
+
+// Section is a part of a Table. Its rows have cells, which line up in
+// columns across the rows of the section.
+type Section struct {
+	Rows [][]string
+	// Center centers the rows, rather than aligning them left.
+	Center bool
+	// Bold draws the section's text bold; Small draws it smaller (a
+	// class's annotation, as <<interface>>).
+	Bold, Small bool
+	// Joined draws the section with no line above it, as a part of the
+	// section before: a class's name under its annotation.
+	Joined bool
 }
 
 // Edge is an edge of the graph.
@@ -172,6 +227,11 @@ type Edge struct {
 	// linkStyle counts by.
 	Index int
 	Style Style
+	// StartLabel and EndLabel are texts at the ends of the edge: the
+	// multiplicities of a relation of classes.
+	StartLabel, EndLabel string
+	// Series, when above 0, colors the edge as Node.Series does.
+	Series int
 }
 
 // Subgraph is a subgraph: a box grouping nodes and other subgraphs.
@@ -219,6 +279,10 @@ type Graph struct {
 	// Final tells whether the source was complete when parsed.
 	Final bool
 }
+
+// NewGraph returns an empty graph, for the parsers of the other kinds of
+// diagrams drawn as graphs.
+func NewGraph() *Graph { return newGraph() }
 
 func newGraph() *Graph {
 	return &Graph{

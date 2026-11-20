@@ -1,0 +1,27 @@
+erDiagram
+    STUDENT }|--|{ COURSE : enrolls
+    TEACHER ||--o{ COURSE : teaches
+    COURSE ||--|{ CLASS_SESSION : "is held as"
+    STUDENT ||--o{ GRADE : receives
+    COURSE ||--o{ GRADE : awards
+    STUDENT {
+        int student_id PK
+        string first_name
+        string last_name
+        date birth_date
+    }
+    TEACHER {
+        int teacher_id PK
+        string name
+        string department
+    }
+    COURSE {
+        string code PK
+        string title
+        int credits
+    }
+    GRADE {
+        int student_id FK
+        string course_code FK
+        char(2) letter
+    }

@@ -1,7 +1,7 @@
 // Command markdown shows a Markdown document whose mermaid code blocks are
 // drawn as diagrams. It takes one hook: markdown.Options.Code maps the
 // language "mermaid" to mermaid.CodeBlock. Kinds of diagrams streameraid
-// does not draw yet, as the pie chart at the end, still show as code.
+// does not draw yet, as the Gantt chart at the end, still show as code.
 //
 //	go run ./markdown
 //	go run ./markdown path/to/notes.md   # a file of your own
@@ -58,12 +58,19 @@ const doc = "# 订单服务设计说明\n\n" +
 	"    P--)O: 支付回调\n" +
 	"```\n\n" +
 	"## 流量占比\n\n" +
-	"饼图还不支持，会按代码显示：\n\n" +
 	"```mermaid\n" +
 	"pie title 渠道\n" +
 	"    \"App\" : 62\n" +
 	"    \"Web\" : 31\n" +
 	"    \"小程序\" : 7\n" +
+	"```\n\n" +
+	"## 排期\n\n" +
+	"甘特图还不支持，会按代码显示：\n\n" +
+	"```mermaid\n" +
+	"gantt\n" +
+	"    title 上线排期\n" +
+	"    section 开发\n" +
+	"    订单服务 :a1, 2026-12-01, 10d\n" +
 	"```\n"
 
 type app struct {

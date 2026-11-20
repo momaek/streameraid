@@ -10,6 +10,7 @@ import (
 	"github.com/momaek/streameraid/layout"
 	"github.com/momaek/streameraid/measure"
 	"github.com/momaek/streameraid/render/css"
+	"github.com/momaek/streameraid/render/svg"
 )
 
 // palette is the colors a diagram is drawn in, taken from the theme: nodes
@@ -20,6 +21,15 @@ type palette struct {
 	edge, labelBg, clusterFill, clusterStroke, clusterText  ui.Color
 	noteFill, noteStroke, noteText                          ui.Color // notes of sequence diagrams
 	accent                                                  ui.Color // what stands out under the pointer
+	series                                                  []ui.Color
+}
+
+// seriesColor returns the color of series n, from 1.
+func (pal palette) seriesColor(n int) ui.Color {
+	if n < 1 || len(pal.series) == 0 {
+		return pal.nodeStroke
+	}
+	return pal.series[(n-1)%len(pal.series)]
 }
 
 func newPalette(th *ui.Theme) palette {
@@ -39,7 +49,17 @@ func newPalette(th *ui.Theme) palette {
 	if th.Dark {
 		noteFill, noteStroke = ui.RGB(0x3b, 0x35, 0x16), ui.RGB(0x9e, 0x8a, 0x2e)
 	}
+	series := svg.SeriesLight
+	if th.Dark {
+		series = svg.SeriesDark
+	}
+	var seriesColors []ui.Color
+	for _, h := range series {
+		c, _ := css.ParseColor(h)
+		seriesColors = append(seriesColors, ui.RGB(c.R, c.G, c.B))
+	}
 	return palette{
+		series:   seriesColors,
 		noteFill: noteFill, noteStroke: noteStroke, noteText: th.Text, accent: acc,
 		bg:          bg,
 		nodeFill:    mix(bg, acc, 0.10),
@@ -84,7 +104,19 @@ func (pal palette) textOn(fill string) ui.Color {
 
 func (pal palette) node(g *flow.Graph, n *flow.Node) (fill, stroke, text ui.Color) {
 	st := g.NodeStyle(n)
-	fill, stroke, text = pal.styled(st.Fill, pal.nodeFill), pal.styled(st.Stroke, pal.nodeStroke), pal.text
+	fill, stroke, text = pal.nodeFill, pal.nodeStroke, pal.text
+	switch {
+	case layout.FilledShape(n.Shape):
+		fill, stroke = pal.edge, pal.edge
+	case n.Shape == flow.End:
+		fill, stroke = pal.bg, pal.edge
+	case n.Shape == flow.Note:
+		fill, stroke, text = pal.noteFill, pal.noteStroke, pal.noteText
+	case n.Series > 0:
+		c := pal.seriesColor(n.Series)
+		fill, stroke = mix(pal.bg, c, 0.22), c
+	}
+	fill, stroke = pal.styled(st.Fill, fill), pal.styled(st.Stroke, stroke)
 	if st.Color != "" {
 		text = pal.styled(st.Color, text)
 	} else if st.Fill != "" {
@@ -149,10 +181,20 @@ func paint(p *ui.Painter, r ui.Rect, g *flow.Graph, lay *layout.Flow, f *frame, 
 	rad := float32(0.4 * fs)
 	for _, cb := range lay.Clusters {
 		cf := f.clusters[cb.ID]
-		fill, stroke, _ := pal.cluster(g, g.Subgraphs[cb.ID])
+		sg := g.Subgraphs[cb.ID]
+		fill, stroke, _ := pal.cluster(g, sg)
 		box := toRect(cf.rect, dx, dy)
 		p.Fill(box, fade(fill, cf.alpha), rad)
-		p.Stroke(box, fade(stroke, cf.alpha), rad, 1)
+		if g.SubgraphStyle(sg).Dash != "" {
+			// A dashed box: a region of a state, or a style asking for it.
+			var outline geom.Path
+			outline.RoundRect(cf.rect, float64(rad))
+			path := toPath(outline, dx, dy)
+			path.Dash(0, 4, 4)
+			p.StrokePath(path, 1, fade(stroke, cf.alpha))
+		} else {
+			p.Stroke(box, fade(stroke, cf.alpha), rad, 1)
+		}
 	}
 	for _, er := range lay.Edges {
 		e := g.Edges[er.Index]
@@ -160,7 +202,7 @@ func paint(p *ui.Painter, r ui.Rect, g *flow.Graph, lay *layout.Flow, f *frame, 
 			continue
 		}
 		ef := f.edges[er.ID]
-		color := pal.styled(e.Style.Stroke, pal.edge)
+		color := pal.edgeColor(e)
 		w := float32(layout.EdgeWidth(e, fs))
 		if hover != "" {
 			if e.From == hover || e.To == hover {
@@ -182,17 +224,25 @@ func paint(p *ui.Painter, r ui.Rect, g *flow.Graph, lay *layout.Flow, f *frame, 
 			path.Dash(0, w*2.5, w*2.5)
 		}
 		p.StrokePath(path, w, color)
-		for i, m := range markers {
-			// EdgeShapes gives the marker at the target first. It comes as
-			// the line reaches the target; the one at the source is there
-			// from the start.
+		for _, m := range markers {
+			// A marker at the target comes as the line reaches it; one at
+			// the source is there from the start.
 			c := color
-			if i == 0 && e.End != flow.ArrowNone {
+			if m.AtEnd {
 				c = fade(color, (ef.drawn-0.8)/0.2)
 			}
-			if m.Filled {
+			switch {
+			case m.Hollow:
+				shape := toPath(m.Shape, dx, dy)
+				if m.Filled {
+					p.FillPath(shape, c)
+				} else {
+					p.FillPath(shape, fade(pal.bg, (ef.drawn-0.8)/0.2))
+				}
+				p.StrokePath(shape, w, c)
+			case m.Filled:
 				p.FillPath(toPath(m.Shape, dx, dy), c)
-			} else {
+			default:
 				p.StrokePath(toPath(m.Shape, dx, dy), w*1.2, c)
 			}
 		}
@@ -224,7 +274,7 @@ func paint(p *ui.Painter, r ui.Rect, g *flow.Graph, lay *layout.Flow, f *frame, 
 			// On the way: a new node grows a little as it fades in.
 			rect := grow(nf.rect, 0.92+0.08*nf.alpha)
 			shape = layout.Outline(nb.Shape, rect)
-			lines = layout.Decorations(nb.Shape, rect, fs)
+			lines = layout.NodeLines(nb, rect, fs)
 		}
 		if nb.ID == hover {
 			stroke, w = pal.accent, w*1.6
@@ -233,9 +283,22 @@ func paint(p *ui.Painter, r ui.Rect, g *flow.Graph, lay *layout.Flow, f *frame, 
 		p.FillPath(outline, fade(fill, nf.alpha))
 		p.StrokePath(outline, w, fade(stroke, nf.alpha))
 		if len(lines.Ops) > 0 {
-			p.StrokePath(toPath(lines, dx, dy), w, fade(stroke, nf.alpha))
+			if layout.FilledDecorations(nb.Shape) {
+				p.FillPath(toPath(lines, dx, dy), fade(stroke, nf.alpha))
+			} else {
+				p.StrokePath(toPath(lines, dx, dy), w, fade(stroke, nf.alpha))
+			}
 		}
 	}
+}
+
+// edgeColor returns the color of an edge's line: its style's, its
+// series', or the theme's.
+func (pal palette) edgeColor(e *flow.Edge) ui.Color {
+	if e.Series > 0 && e.Style.Stroke == "" {
+		return pal.seriesColor(e.Series)
+	}
+	return pal.styled(e.Style.Stroke, pal.edge)
 }
 
 // labelText places a label's lines centered on c, as text elements, at

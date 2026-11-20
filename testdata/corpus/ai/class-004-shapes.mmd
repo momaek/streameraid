@@ -1,0 +1,25 @@
+classDiagram
+    class Shape {
+        <<abstract>>
+        #String color
+        +area()* double
+        +perimeter()* double
+        +describe() String
+    }
+    class Circle {
+        -double radius
+        +area() double
+        +perimeter() double
+    }
+    class Rectangle {
+        -double width
+        -double height
+        +area() double
+        +perimeter() double
+    }
+    class Square {
+        +Square(side: double)
+    }
+    Shape <|-- Circle
+    Shape <|-- Rectangle
+    Rectangle <|-- Square

@@ -1,0 +1,14 @@
+erDiagram
+    direction LR
+    member["Library Member"] ||--o{ loan["Loan"] : borrows
+    book["Book"] ||--o{ loan : "is lent in"
+    author["Author"] }|--|{ book : writes
+    member {
+        int id PK
+        string name
+    }
+    book {
+        string isbn PK
+        string title
+        int year
+    }

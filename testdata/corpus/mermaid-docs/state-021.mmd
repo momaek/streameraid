@@ -1,0 +1,10 @@
+stateDiagram-v2
+    TN3: The state with a note
+    note right of TN3
+        Important information! You can write
+        notes.
+    end note
+    TN3 --> TN4
+    note left of TN4 : This is the note to the left.
+    TN4 --> [*]
+    note "This is a floating note" as N1

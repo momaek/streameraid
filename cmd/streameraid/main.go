@@ -26,8 +26,9 @@ import (
 
 const usage = `usage: streameraid render [flags] [in.mmd]
 
-Draws a Mermaid flowchart or sequence diagram as SVG, reading the standard
-input when no file is given.
+Draws a Mermaid diagram as SVG: a flowchart, a sequence, state, class or
+ER diagram, a mind map or a pie chart. It reads the standard input when no
+file is given.
 
   -o file          write the SVG to file instead of the standard output
   -dark            draw for a dark background
