@@ -116,23 +116,24 @@ streameraid render -dark -bg '#0d1117' < diagram.mmd > diagram.svg
 
 - 状态，`state "text" as S` 和描述（`S : text`）；`[*]` 作为起点和终点，每个复合状态各有一套。
 - `<<choice>>`、`<<fork>>`、`<<join>>`；复合状态，可嵌套，可带 `direction`；并发区域（`--`）。
-- 带文字的转换；`note left of` 和 `right of`，单行或多行。
+- 带文字的转换，可以链式书写（`A --> B --> C`）；`note left of` 和 `right of`，单行或多行。
 - `classDef`、`class`、`:::`、`style`。
 
 **类图**（`classDiagram`）
 
-- 类及其属性和方法，写在块里或写成 `A : member`；注解（`<<interface>>`）；泛型（`List~T~`）；标签（`A["text"]`）。
+- 类及其属性和方法，写在块里或写成 `A : member`；注解（`<<interface>>`）；泛型（`List~T~`）；标签（`A["text"]`）；静态成员加下划线，抽象成员用斜体（`$`、`*`）。
 - 关系：继承、组合、聚合、关联、依赖、实现，实线和虚线连接，棒棒糖接口，双向；两端的基数（`"1" --> "*"`）和标签。
-- `namespace`、`note for`、`direction`、`classDef`、`cssClass`、`:::`、`style`。
+- `namespace`（可带标签）、`note for`、`direction`、`classDef`、`cssClass`、`:::`、`style`。
 
 **ER 图**（`erDiagram`）
 
 - 实体及其属性（类型、名称、键、注释），按列对齐；别名（`p[Person]`）。
 - 鸦脚标记的关系，符号或文字写法（`one or more`、`zero or one` 等），标识和非标识关系，带标签。
+- 还不支持：`subgraph`（Mermaid 11.17 新增）。
 
 **思维导图**（`mindmap`）
 
-- 按缩进组成的树；普通节点，以及方形、圆角、圆、爆炸形、云形和六边形；Markdown 字符串；`:::` 类。每个分支一种颜色。图标不画。
+- 按缩进组成的树；普通节点（含 `(-text-)`），以及方形、圆角、圆、爆炸形、云形和六边形；Markdown 字符串；`:::` 类。每个分支一种颜色。常见的 Font Awesome 和 Material Design 图标（`::icon(fa fa-book)`）画成标签前的 emoji，其他图标不画。
 
 **饼图**（`pie`）
 

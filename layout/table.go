@@ -50,7 +50,10 @@ func MeasureTable(t *flow.Table, m Measurer, opt Options) TableBox {
 		}
 		var sc sec
 		sc.lineH = m.Measure("M", st, 0).H
-		for _, row := range s.Rows {
+		for r, row := range s.Rows {
+			rs := s.RowStyle(r)
+			st := st
+			st.Italic, st.Underline = rs&flow.RowItalic != 0, rs&flow.RowUnderline != 0
 			var cells []TextBox
 			for i, text := range row {
 				tb := m.Measure(text, st, 0)

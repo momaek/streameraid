@@ -194,6 +194,12 @@ func Flow(g *flow.Graph, f *layout.Flow, th Theme, fontSize float64) string {
 				if c.Text.Style.Size != fontSize {
 					extra += fmt.Sprintf(` font-size="%s"`, num(c.Text.Style.Size))
 				}
+				if c.Text.Style.Italic {
+					extra += ` font-style="italic"`
+				}
+				if c.Text.Style.Underline {
+					extra += ` text-decoration="underline"`
+				}
 				at := nb.Table.CellAt(c, nb.Rect)
 				if c.Left {
 					writeTextFrom(&b, c.Text, geom.Point{X: at.X - c.Text.W/2, Y: at.Y}, text, extra)

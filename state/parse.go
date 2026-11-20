@@ -850,27 +850,44 @@ func (p *parser) transition(s string, tail, cut bool) {
 		return
 	}
 	from := p.use(left, true)
-	sc.skipSpace()
-	if sc.eof() {
-		p.problem("transition has no target")
-		return
-	}
-	right, err := sc.ref(cut)
-	if err != nil {
-		if !errors.Is(err, errIncomplete) {
-			p.problem("%v", err)
+	// A chain, A --> B --> C, is a transition per arrow; a label after the
+	// last state is the last transition's.
+	for {
+		sc.skipSpace()
+		if sc.eof() {
+			p.problem("transition has no target")
+			return
 		}
-		return
-	}
-	to := p.use(right, false)
-	e := p.edge(from, to, "", flow.Solid, flow.ArrowNormal)
-	sc.skipSpace()
-	switch {
-	case sc.eof():
-	case sc.peek() == ':':
-		e.Label = label.Clean(sc.s[sc.i+1:])
-	default:
-		p.problem("unexpected %q after the transition", short(sc.s[sc.i:]))
+		right, err := sc.ref(cut)
+		if err != nil {
+			if !errors.Is(err, errIncomplete) {
+				p.problem("%v", err)
+			}
+			return
+		}
+		to := p.use(right, false)
+		e := p.edge(from, to, "", flow.Solid, flow.ArrowNormal)
+		sc.skipSpace()
+		switch {
+		case sc.eof():
+			return
+		case sc.peek() == ':':
+			e.Label = label.Clean(sc.s[sc.i+1:])
+			return
+		case strings.HasPrefix(sc.s[sc.i:], "-->"):
+			if right.star {
+				p.problem("[*] cannot be in the middle of a chain")
+				return
+			}
+			sc.i += 3
+			from = to
+		case tail && strings.HasPrefix("-->", sc.s[sc.i:]):
+			// The next arrow is still being written.
+			return
+		default:
+			p.problem("unexpected %q after the transition", short(sc.s[sc.i:]))
+			return
+		}
 	}
 }
 

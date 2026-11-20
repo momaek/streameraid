@@ -116,23 +116,24 @@ streameraid render -dark -bg '#0d1117' < diagram.mmd > diagram.svg
 
 - States, with `state "text" as S` and descriptions (`S : text`); `[*]` as start and end, in each composite state.
 - `<<choice>>`, `<<fork>>`, `<<join>>`; composite states, nested, with `direction`; concurrent regions (`--`).
-- Transitions with text; `note left of` and `right of`, on one line or as a block.
+- Transitions with text, chained (`A --> B --> C`); `note left of` and `right of`, on one line or as a block.
 - `classDef`, `class`, `:::`, `style`.
 
 **Class diagrams** (`classDiagram`)
 
-- Classes with attributes and methods, from blocks or `A : member` lines; annotations (`<<interface>>`); generics (`List~T~`); labels (`A["text"]`).
+- Classes with attributes and methods, from blocks or `A : member` lines; annotations (`<<interface>>`); generics (`List~T~`); labels (`A["text"]`); static members underlined and abstract ones in italics (`$`, `*`).
 - Relations: inheritance, composition, aggregation, association, dependency, realization, links solid and dashed, lollipops, two-sided; multiplicities at both ends (`"1" --> "*"`) and a label.
-- `namespace`, `note for`, `direction`, `classDef`, `cssClass`, `:::`, `style`.
+- `namespace` (with a label), `note for`, `direction`, `classDef`, `cssClass`, `:::`, `style`.
 
 **ER diagrams** (`erDiagram`)
 
 - Entities with attributes (type, name, keys, comment), in aligned columns; aliases (`p[Person]`).
 - Relationships in crow's foot notation, symbols or words (`one or more`, `zero or one`, ...), identifying and not, with a label.
+- Not yet: `subgraph` (Mermaid 11.17).
 
 **Mind maps** (`mindmap`)
 
-- A tree by indentation; nodes plain or as square, rounded, circle, bang, cloud and hexagon; Markdown strings; `:::` classes. Each branch has its own color. Icons are left out.
+- A tree by indentation; nodes plain (or `(-text-)`) or as square, rounded, circle, bang, cloud and hexagon; Markdown strings; `:::` classes. Each branch has its own color. Common Font Awesome and Material Design icons (`::icon(fa fa-book)`) show as an emoji before the label; others are left out.
 
 **Pie charts** (`pie`)
 
