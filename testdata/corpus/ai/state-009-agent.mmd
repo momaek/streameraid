@@ -1,0 +1,27 @@
+---
+title: LLM agent loop
+---
+stateDiagram-v2
+    hide empty description
+    state "Waiting for user" as Waiting
+    state "Calling the model" as Thinking
+    state "Running a tool" as Acting
+    state decide <<choice>>
+
+    [*] --> Waiting
+    Waiting --> Thinking : user message
+    Thinking --> decide
+    decide --> Acting : tool call
+    decide --> Responding : final answer
+    Acting --> Thinking : tool result
+    Responding --> Waiting : reply sent
+
+    state Acting {
+        direction LR
+        [*] --> Validate
+        Validate --> Execute
+        Execute --> [*]
+    }
+
+    Thinking : max 20 steps
+    Thinking : temperature 0.2

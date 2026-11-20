@@ -1,0 +1,36 @@
+classDiagram
+    direction LR
+    class Customer {
+        +String id
+        +String email
+        +List~Order~ orders
+        +placeOrder(cart: Cart) Order
+    }
+    class Order {
+        +String id
+        +Date createdAt
+        +OrderStatus status
+        +total() decimal
+        +cancel() bool
+    }
+    class OrderItem {
+        +int quantity
+        +decimal unitPrice
+        +subtotal() decimal
+    }
+    class Product {
+        +String sku
+        +String name
+        +decimal price
+    }
+    class OrderStatus {
+        <<enumeration>>
+        PENDING
+        PAID
+        SHIPPED
+        CANCELLED
+    }
+    Customer "1" --> "*" Order : places
+    Order "1" *-- "1..*" OrderItem : contains
+    OrderItem "*" --> "1" Product : refers to
+    Order ..> OrderStatus

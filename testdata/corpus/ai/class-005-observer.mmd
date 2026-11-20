@@ -1,0 +1,27 @@
+classDiagram
+    class Subject {
+        <<interface>>
+        +attach(o: Observer)
+        +detach(o: Observer)
+        +notify()
+    }
+    class Observer {
+        <<interface>>
+        +update(state: int)
+    }
+    class WeatherStation {
+        -List~Observer~ observers
+        -int temperature
+        +setTemperature(t: int)
+    }
+    class PhoneDisplay {
+        +update(state: int)
+    }
+    class WindowDisplay {
+        +update(state: int)
+    }
+    Subject <|.. WeatherStation
+    Observer <|.. PhoneDisplay
+    Observer <|.. WindowDisplay
+    WeatherStation o-- Observer : observers
+    note for WeatherStation "Calls notify() whenever\nthe temperature changes"

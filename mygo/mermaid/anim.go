@@ -2,6 +2,7 @@ package mermaid
 
 import (
 	"math"
+	"strings"
 	"time"
 
 	"github.com/momaek/streameraid/geom"
@@ -150,6 +151,9 @@ func (t *transition) at(now time.Time) *frame {
 	for id, to := range t.to.nodes {
 		if from, ok := t.from.nodes[id]; ok {
 			f.nodes[id] = nodeFrame{rect: rect(from.rect, to.rect), alpha: lerp(from.alpha, 1)}
+		} else if strings.HasPrefix(id, "slice:") {
+			// A new slice of a pie turns open from its start.
+			f.nodes[id] = nodeFrame{rect: geom.Rect{X: to.rect.X, W: to.rect.W * p}, alpha: p}
 		} else {
 			f.nodes[id] = nodeFrame{rect: to.rect, alpha: p}
 		}

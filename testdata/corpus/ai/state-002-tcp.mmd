@@ -1,0 +1,15 @@
+stateDiagram-v2
+    direction LR
+    [*] --> CLOSED
+    CLOSED --> LISTEN : passive open
+    CLOSED --> SYN_SENT : active open / send SYN
+    LISTEN --> SYN_RCVD : recv SYN / send SYN+ACK
+    SYN_SENT --> ESTABLISHED : recv SYN+ACK / send ACK
+    SYN_RCVD --> ESTABLISHED : recv ACK
+    ESTABLISHED --> FIN_WAIT_1 : close / send FIN
+    ESTABLISHED --> CLOSE_WAIT : recv FIN / send ACK
+    FIN_WAIT_1 --> FIN_WAIT_2 : recv ACK
+    FIN_WAIT_2 --> TIME_WAIT : recv FIN / send ACK
+    CLOSE_WAIT --> LAST_ACK : close / send FIN
+    LAST_ACK --> CLOSED : recv ACK
+    TIME_WAIT --> CLOSED : timeout (2MSL)

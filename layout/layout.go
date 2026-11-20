@@ -102,8 +102,11 @@ type NodeBox struct {
 	// Outline is the node's shape, filled and stroked by renderers.
 	Outline geom.Path
 	// Lines are extra lines drawn over the shape: the bars of a
-	// subroutine, the lower rim of a cylinder.
+	// subroutine, the lower rim of a cylinder, the dividers of a box of
+	// sections.
 	Lines geom.Path
+	// Table holds the texts of a box of sections, whose Label is empty.
+	Table *TableBox
 }
 
 // EdgeRoute is where an edge is drawn.
@@ -119,6 +122,10 @@ type EdgeRoute struct {
 	HasLabel bool
 	Label    TextBox
 	LabelAt  geom.Point
+	// StartLabel and EndLabel are the texts at the edge's ends, when they
+	// have lines, centered on StartAt and EndAt.
+	StartLabel, EndLabel TextBox
+	StartAt, EndAt       geom.Point
 }
 
 // ClusterBox is where a subgraph's box is drawn.

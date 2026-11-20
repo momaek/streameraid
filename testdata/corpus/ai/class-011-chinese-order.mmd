@@ -1,0 +1,22 @@
+classDiagram
+    direction TB
+    class 订单 {
+        +String 订单号
+        +Date 下单时间
+        +decimal 金额
+        +支付() bool
+        +取消() void
+    }
+    class 用户 {
+        +String 用户名
+        +String 手机号
+        +下单(商品列表) 订单
+    }
+    class 商品 {
+        +String 名称
+        +decimal 价格
+        +int 库存
+    }
+    用户 "1" --> "0..*" 订单 : 创建
+    订单 "*" --> "1..*" 商品 : 包含
+    note for 订单 "订单状态：待支付、已支付、已发货"

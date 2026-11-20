@@ -1,22 +1,25 @@
 // Package streameraid renders Mermaid diagrams in pure Go: without a
 // browser, a WebView or JavaScript.
 //
-// RenderSVG draws a diagram's source as SVG: flowcharts and sequence
-// diagrams. The packages under it parse (flow, seq), lay out (layout,
-// layout/sugiyama, layout/sequence) and draw (render/svg) diagrams, and the module github.com/momaek/streameraid/mygo draws them
-// natively in MyGo, as they stream in.
+// RenderSVG draws a diagram's source as SVG: flowcharts, sequence
+// diagrams, state diagrams, class diagrams, ER diagrams, mind maps and pie
+// charts. The packages under it parse (flow, seq, state, class, er,
+// mindmap, pie), lay out (layout and its subpackages) and draw
+// (render/svg) diagrams, and the module github.com/momaek/streameraid/mygo
+// draws them natively in MyGo, as they stream in.
 package streameraid
 
 import (
 	"errors"
 	"fmt"
+	"github.com/momaek/streameraid/flow"
 	"strings"
 
-	"github.com/momaek/streameraid/flow"
 	"github.com/momaek/streameraid/layout"
+	"github.com/momaek/streameraid/layout/piechart"
 	"github.com/momaek/streameraid/layout/sequence"
-	"github.com/momaek/streameraid/layout/sugiyama"
 	"github.com/momaek/streameraid/measure"
+	"github.com/momaek/streameraid/pie"
 	"github.com/momaek/streameraid/render/svg"
 	"github.com/momaek/streameraid/seq"
 )
@@ -27,7 +30,25 @@ type Kind string
 const (
 	Flowchart Kind = "flowchart"
 	Sequence  Kind = "sequenceDiagram"
+	State     Kind = "stateDiagram"
+	Class     Kind = "classDiagram"
+	ER        Kind = "erDiagram"
+	Mindmap   Kind = "mindmap"
+	Pie       Kind = "pie"
 )
+
+// Kinds are the kinds of diagrams drawn.
+var Kinds = []Kind{Flowchart, Sequence, State, Class, ER, Mindmap, Pie}
+
+// Supported reports whether diagrams of a kind are drawn.
+func Supported(k Kind) bool {
+	for _, s := range Kinds {
+		if k == s {
+			return true
+		}
+	}
+	return false
+}
 
 // Detect returns the kind a diagram's source declares in its first
 // statement: graph and flowchart are flowcharts. It returns the keyword as
@@ -48,6 +69,10 @@ func Detect(src string) Kind {
 		switch word {
 		case "graph", "flowchart", "flowchart-elk":
 			return Flowchart
+		case "stateDiagram-v2":
+			return State
+		case "classDiagram-v2":
+			return Class
 		}
 		return Kind(word)
 	}
@@ -101,15 +126,22 @@ func Render(src string, opt Options) (*Result, error) {
 	if opt.Background != "" {
 		th.Background = opt.Background
 	}
-	switch k := Detect(src); k {
-	case Flowchart:
-		g := flow.Parse(src, true)
+	switch k := Detect(src); {
+	case IsGraph(k):
+		g := ParseGraph(k, src, true)
 		if !g.HasHeader {
 			return nil, fmt.Errorf("streameraid: %s", g.Problems[0].Msg)
 		}
-		f := sugiyama.Layout(g, m, lo)
+		f := LayoutGraph(k, g, m, lo, nil, false)
 		return &Result{SVG: svg.Flow(g, f, th, lo.FontSize), Width: f.Width, Height: f.Height, Problems: g.Problems}, nil
-	case Sequence:
+	case k == Pie:
+		c := pie.Parse(src, true)
+		if !c.HasHeader {
+			return nil, fmt.Errorf("streameraid: %s", c.Problems[0].Msg)
+		}
+		p := piechart.Layout(c, m, lo)
+		return &Result{SVG: svg.Pie(p, th, lo.FontSize), Width: p.Width, Height: p.Height, Problems: c.Problems}, nil
+	case k == Sequence:
 		d := seq.Parse(src, true)
 		if !d.HasHeader {
 			return nil, fmt.Errorf("streameraid: %s", d.Problems[0].Msg)
@@ -120,7 +152,7 @@ func Render(src string, opt Options) (*Result, error) {
 			res.Problems = append(res.Problems, Problem(p))
 		}
 		return res, nil
-	case "":
+	case k == "":
 		return nil, errors.New("streameraid: empty diagram")
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupported, k)
