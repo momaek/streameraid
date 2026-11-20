@@ -1,0 +1,34 @@
+---
+title: Warehouse inventory
+---
+erDiagram
+    WAREHOUSE ||--|{ BIN : contains
+    BIN ||--o{ STOCK_ITEM : holds
+    PRODUCT ||--o{ STOCK_ITEM : "is stocked as"
+    SUPPLIER }|..|{ PRODUCT : supplies
+    WAREHOUSE {
+        int id PK
+        string code UK
+        string city
+    }
+    BIN {
+        int id PK
+        int warehouse_id FK
+        string label
+    }
+    STOCK_ITEM {
+        int bin_id PK, FK
+        int product_id PK, FK
+        int quantity
+    }
+    PRODUCT {
+        int id PK
+        string sku UK
+        string name
+    }
+    SUPPLIER {
+        int id PK
+        string name
+    }
+    classDef core fill:#dbeafe,stroke:#1d4ed8
+    class WAREHOUSE,PRODUCT core

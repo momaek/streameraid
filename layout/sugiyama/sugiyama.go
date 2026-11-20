@@ -48,6 +48,7 @@ func LayoutWith(g *flow.Graph, m layout.Measurer, opt layout.Options, h Hints) *
 		g: g, m: m, opt: opt,
 		nodeW: map[string]float64{}, nodeH: map[string]float64{},
 		labels: map[string]layout.TextBox{}, edgeLabels: map[int]layout.TextBox{},
+		tables: map[string]*layout.TableBox{}, endLabels: map[[2]int]layout.TextBox{},
 		titles: map[string]layout.TextBox{}, collapsed: map[string]bool{}, hasNodes: map[string]bool{},
 		prev: map[string]geom.Rect{}, anchor: h.Anchor,
 	}
@@ -76,8 +77,12 @@ type layouter struct {
 
 	nodeW, nodeH map[string]float64
 	labels       map[string]layout.TextBox
+	tables       map[string]*layout.TableBox
 	edgeLabels   map[int]layout.TextBox
-	titles       map[string]layout.TextBox
+	// endLabels are the texts at the ends of edges, by the edge's index and
+	// 0 for its source, 1 for its target.
+	endLabels map[[2]int]layout.TextBox
+	titles    map[string]layout.TextBox
 	// collapsed subgraphs are laid out on their own and placed as one box:
 	// those with their own direction and no edge crossing their border, and
 	// those with no nodes.
@@ -99,9 +104,35 @@ func (l *layouter) measure() {
 		if w := l.g.NodeStyle(n).FontWeight; w == "bold" || w == "bolder" || w >= "600" && w <= "999" {
 			s.Bold = true
 		}
+		switch n.Shape {
+		case flow.Sectioned:
+			t := &flow.Table{}
+			if n.Table != nil {
+				t = n.Table
+			}
+			tb := layout.MeasureTable(t, l.m, l.opt)
+			l.tables[id] = &tb
+			l.nodeW[id], l.nodeH[id] = tb.W, tb.H
+			continue
+		case flow.Start, flow.End, flow.Choice, flow.Bar:
+			// Shapes without text.
+			l.nodeW[id], l.nodeH[id] = layout.NodeSize(n.Shape, layout.TextBox{}, l.opt.FontSize)
+			if n.Shape == flow.Bar && l.nodeDir(n).Horizontal() {
+				l.nodeW[id], l.nodeH[id] = l.nodeH[id], l.nodeW[id]
+			}
+			continue
+		}
 		tb := l.m.Measure(n.Label, s, l.opt.WrapWidth)
 		l.labels[id] = tb
 		l.nodeW[id], l.nodeH[id] = layout.NodeSize(n.Shape, tb, l.opt.FontSize)
+	}
+	for _, e := range l.g.Edges {
+		if e.StartLabel != "" {
+			l.endLabels[[2]int{e.Index, 0}] = l.m.Measure(e.StartLabel, st, l.opt.WrapWidth)
+		}
+		if e.EndLabel != "" {
+			l.endLabels[[2]int{e.Index, 1}] = l.m.Measure(e.EndLabel, st, l.opt.WrapWidth)
+		}
 	}
 	for _, e := range l.g.Edges {
 		if e.Label != "" {
@@ -113,6 +144,17 @@ func (l *layouter) measure() {
 			l.titles[id] = l.m.Measure(t, st, 2*l.opt.WrapWidth)
 		}
 	}
+}
+
+// nodeDir returns the direction of the ranks a node is in: that of the
+// innermost subgraph around it that sets one, or the diagram's.
+func (l *layouter) nodeDir(n *flow.Node) flow.Direction {
+	for s := n.Subgraph; s != ""; s = l.g.Subgraphs[s].Parent {
+		if sg := l.g.Subgraphs[s]; sg.HasDir {
+			return sg.Dir
+		}
+	}
+	return l.g.Dir
 }
 
 // classify finds the subgraphs laid out on their own.
@@ -406,11 +448,12 @@ func (l *layouter) assemble(r *result) *layout.Flow {
 			continue
 		}
 		n := g.Nodes[id]
-		out.Nodes = append(out.Nodes, layout.NodeBox{
+		nb := layout.NodeBox{
 			ID: id, Rect: rect, Shape: n.Shape, Label: l.labels[id],
-			Outline: layout.Outline(n.Shape, rect),
-			Lines:   layout.Decorations(n.Shape, rect, l.opt.FontSize),
-		})
+			Outline: layout.Outline(n.Shape, rect), Table: l.tables[id],
+		}
+		nb.Lines = layout.NodeLines(nb, rect, l.opt.FontSize)
+		out.Nodes = append(out.Nodes, nb)
 	}
 	for _, id := range g.SubgraphOrder {
 		rect, ok := r.clusters[id]
@@ -432,9 +475,44 @@ func (l *layouter) assemble(r *result) *layout.Flow {
 		if tb, ok := l.edgeLabels[e.Index]; ok {
 			er.HasLabel, er.Label, er.LabelAt = true, tb, rt.labelAt
 		}
+		if tb, ok := l.endLabels[[2]int{e.Index, 0}]; ok {
+			er.StartLabel, er.StartAt = tb, l.clearOf(er, tb, layout.EndLabelAt(rt.path, e.Start, tb, false, l.opt.FontSize))
+		}
+		if tb, ok := l.endLabels[[2]int{e.Index, 1}]; ok {
+			er.EndLabel, er.EndAt = tb, l.clearOf(er, tb, layout.EndLabelAt(rt.path, e.End, tb, true, l.opt.FontSize))
+		}
 		out.Edges = append(out.Edges, er)
 	}
 	return out
+}
+
+// clearOf moves a text at an end of an edge, centered on at, out of the
+// way of the edge's own label: across the ranks, to the side it is on.
+func (l *layouter) clearOf(er layout.EdgeRoute, tb layout.TextBox, at geom.Point) geom.Point {
+	if !er.HasLabel {
+		return at
+	}
+	fs := l.opt.FontSize
+	lb := geom.RectCentered(er.LabelAt, er.Label.W+0.5*fs, er.Label.H+0.2*fs)
+	r := geom.RectCentered(at, tb.W, tb.H)
+	if r.X >= lb.Right() || r.Right() <= lb.X || r.Y >= lb.Bottom() || r.Bottom() <= lb.Y {
+		return at
+	}
+	gap := 0.2 * fs
+	if l.g.Dir.Horizontal() {
+		if at.Y >= er.LabelAt.Y {
+			at.Y = lb.Bottom() + tb.H/2 + gap
+		} else {
+			at.Y = lb.Y - tb.H/2 - gap
+		}
+		return at
+	}
+	if at.X >= er.LabelAt.X {
+		at.X = lb.Right() + tb.W/2 + gap
+	} else {
+		at.X = lb.X - tb.W/2 - gap
+	}
+	return at
 }
 
 // scopeLayout lays out one scope.
@@ -455,6 +533,8 @@ type scopeLayout struct {
 	chains map[*scopeEdge][]*lnode
 	// anyPrev tells that some node was in an earlier layout.
 	anyPrev bool
+	// flipTies sorts nodes at the same mean in the reverse of their order.
+	flipTies bool
 }
 
 func (s *scopeLayout) add(it *item) { s.items = append(s.items, it) }

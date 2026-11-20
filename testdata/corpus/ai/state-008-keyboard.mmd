@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> Idle
+    Idle --> Active : power on
+
+    state Active {
+        [*] --> NumLockOff
+        NumLockOff --> NumLockOn : press NumLock
+        NumLockOn --> NumLockOff : press NumLock
+        --
+        [*] --> CapsLockOff
+        CapsLockOff --> CapsLockOn : press CapsLock
+        CapsLockOn --> CapsLockOff : press CapsLock
+    }
+
+    Active --> Idle : power off
+    Idle --> [*]

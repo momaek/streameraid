@@ -1,0 +1,34 @@
+---
+title: Game entities
+---
+classDiagram
+    class GameObject {
+        +Vector2 position
+        +update(dt: float)
+        +draw(ctx: Canvas)
+    }
+    class Player {
+        +int health
+        +Inventory inventory
+        +jump()
+        +attack(target: Enemy)
+    }
+    class Enemy {
+        +int damage
+        +patrol()
+    }
+    class Inventory {
+        -Map~String, Item~ items
+        +add(item: Item) bool
+        +remove(name: String) Item
+    }
+    class Item {
+        +String name
+        +int weight
+    }
+    GameObject <|-- Player
+    GameObject <|-- Enemy
+    Player *-- Inventory
+    Inventory o-- Item
+    Player ..> Enemy : attacks
+    style Player fill:#bbf7d0,stroke:#15803d,stroke-width:2px

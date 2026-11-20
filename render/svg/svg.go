@@ -31,6 +31,33 @@ type Theme struct {
 	NoteStroke    string
 	NoteText      string
 	FontFamily    string
+	// Series are the colors of a mind map's branches and a pie's slices,
+	// in order.
+	Series []string
+}
+
+// SeriesLight and SeriesDark are the default series colors, for light and
+// dark backgrounds: the same eight hues, stepped for each.
+var (
+	SeriesLight = []string{"#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#6250d6", "#e34948"}
+	SeriesDark  = []string{"#3987e5", "#d95926", "#199e70", "#c98500", "#d55181", "#0ca30c", "#9085e9", "#e66767"}
+)
+
+// SeriesColor returns the color of series n, from 1.
+func (th Theme) SeriesColor(n int) string {
+	if len(th.Series) == 0 || n < 1 {
+		return th.NodeStroke
+	}
+	return th.Series[(n-1)%len(th.Series)]
+}
+
+// background returns the color behind the diagram, for what is filled to
+// hide the lines under it.
+func (th Theme) background() string {
+	if th.Background != "" {
+		return th.Background
+	}
+	return th.EdgeLabelBg
 }
 
 // DefaultFonts is the font list SVGs ask for: the system's sans-serif
@@ -45,7 +72,7 @@ func Light() Theme {
 		Edge: "#5b6470", EdgeLabelBg: "#ffffff",
 		ClusterFill: "#f7f8fa", ClusterStroke: "#d0d7de", ClusterText: "#57606a",
 		NoteFill: "#fff8c5", NoteStroke: "#d4a72c", NoteText: "#1f2328",
-		FontFamily: DefaultFonts,
+		FontFamily: DefaultFonts, Series: SeriesLight,
 	}
 }
 
@@ -57,7 +84,7 @@ func Dark() Theme {
 		Edge: "#9ba3ae", EdgeLabelBg: "#1b1f24",
 		ClusterFill: "#161b22", ClusterStroke: "#3a414b", ClusterText: "#9ba3ae",
 		NoteFill: "#3b3516", NoteStroke: "#9e8a2e", NoteText: "#e6edf3",
-		FontFamily: DefaultFonts,
+		FontFamily: DefaultFonts, Series: SeriesDark,
 	}
 }
 
@@ -93,6 +120,9 @@ func Flow(g *flow.Graph, f *layout.Flow, th Theme, fontSize float64) string {
 			continue
 		}
 		color := pick(e.Style.Stroke, th.Edge)
+		if e.Series > 0 && e.Style.Stroke == "" {
+			color = th.SeriesColor(e.Series)
+		}
 		width := layout.EdgeWidth(e, fontSize)
 		body, markers := layout.EdgeShapes(e, r, fontSize)
 		dash := ""
@@ -105,7 +135,9 @@ func Flow(g *flow.Graph, f *layout.Flow, th Theme, fontSize float64) string {
 		fmt.Fprintf(&b, `<g class="edge" data-id="%s"><path d="%s" fill="none" stroke="%s" stroke-width="%s" stroke-linecap="round"%s/>`,
 			attr(e.ID), pathData(body), attr(color), num(width), dash)
 		for _, m := range markers {
-			if m.Filled {
+			if m.Hollow {
+				fmt.Fprintf(&b, `<path d="%s" fill="%s" stroke="%s" stroke-width="%s" stroke-linejoin="round"/>`, pathData(m.Shape), attr(th.background()), attr(color), num(width))
+			} else if m.Filled {
 				fmt.Fprintf(&b, `<path d="%s" fill="%s"/>`, pathData(m.Shape), attr(color))
 			} else {
 				fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="%s" stroke-width="%s" stroke-linecap="round"/>`, pathData(m.Shape), attr(color), num(width*1.2))
@@ -117,6 +149,8 @@ func Flow(g *flow.Graph, f *layout.Flow, th Theme, fontSize float64) string {
 				num(lb.X), num(lb.Y), num(lb.W), num(lb.H), num(0.25*fontSize), attr(th.EdgeLabelBg))
 			writeText(&b, r.Label, r.LabelAt, pick(e.Style.Color, th.Text), "")
 		}
+		writeText(&b, r.StartLabel, r.StartAt, pick(e.Style.Color, th.Text), "")
+		writeText(&b, r.EndLabel, r.EndAt, pick(e.Style.Color, th.Text), "")
 		b.WriteString("</g>\n")
 	}
 	// Titles go over the edges, on their box's fill, so that edges entering
@@ -135,28 +169,67 @@ func Flow(g *flow.Graph, f *layout.Flow, th Theme, fontSize float64) string {
 	for _, nb := range f.Nodes {
 		n := g.Nodes[nb.ID]
 		st := g.NodeStyle(n)
-		fill, stroke := pick(st.Fill, th.NodeFill), pick(st.Stroke, th.NodeStroke)
-		text := th.Text
-		if st.Color != "" {
-			text = st.Color
-		} else if st.Fill != "" {
-			text = textOn(st.Fill, th)
-		}
+		fill, stroke, text := nodeColors(n, st, th)
 		sw := 0.09 * fontSize
 		fmt.Fprintf(&b, `<g class="node" data-id="%s"><path d="%s" fill="%s" stroke="%s"%s/>`,
 			attr(nb.ID), pathData(nb.Outline), attr(fill), attr(stroke), strokeExtras(st, sw))
 		if len(nb.Lines.Ops) > 0 {
-			fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="%s"%s/>`, pathData(nb.Lines), attr(stroke), strokeExtras(st, sw))
+			if layout.FilledDecorations(nb.Shape) {
+				fmt.Fprintf(&b, `<path d="%s" fill="%s"/>`, pathData(nb.Lines), attr(stroke))
+			} else {
+				fmt.Fprintf(&b, `<path d="%s" fill="none" stroke="%s"%s/>`, pathData(nb.Lines), attr(stroke), strokeExtras(st, sw))
+			}
 		}
 		weight := ""
 		if st.FontWeight != "" {
 			weight = fmt.Sprintf(` font-weight="%s"`, attr(st.FontWeight))
 		}
 		writeText(&b, nb.Label, layout.LabelCenter(nb.Shape, nb.Rect), text, weight)
+		if nb.Table != nil {
+			for _, c := range nb.Table.Cells {
+				extra := weight
+				if c.Text.Style.Bold {
+					extra = ` font-weight="bold"`
+				}
+				if c.Text.Style.Size != fontSize {
+					extra += fmt.Sprintf(` font-size="%s"`, num(c.Text.Style.Size))
+				}
+				at := nb.Table.CellAt(c, nb.Rect)
+				if c.Left {
+					writeTextFrom(&b, c.Text, geom.Point{X: at.X - c.Text.W/2, Y: at.Y}, text, extra)
+					continue
+				}
+				writeText(&b, c.Text, at, text, extra)
+			}
+		}
 		b.WriteString("</g>\n")
 	}
 	b.WriteString("</svg>\n")
 	return b.String()
+}
+
+// nodeColors returns the fill, stroke and text colors of a node: those
+// its style sets, else those of its shape or series, else the theme's.
+func nodeColors(n *flow.Node, st flow.Style, th Theme) (fill, stroke, text string) {
+	fill, stroke, text = th.NodeFill, th.NodeStroke, th.Text
+	switch {
+	case layout.FilledShape(n.Shape):
+		fill, stroke = th.Edge, th.Edge
+	case n.Shape == flow.End:
+		fill, stroke = th.background(), th.Edge
+	case n.Shape == flow.Note:
+		fill, stroke, text = th.NoteFill, th.NoteStroke, th.NoteText
+	case n.Series > 0:
+		c := th.SeriesColor(n.Series)
+		fill, stroke = css.Mix(th.background(), c, 0.22), c
+	}
+	fill, stroke = pick(st.Fill, fill), pick(st.Stroke, stroke)
+	if st.Color != "" {
+		text = st.Color
+	} else if st.Fill != "" {
+		text = textOn(st.Fill, th)
+	}
+	return
 }
 
 func strokeExtras(st flow.Style, width float64) string {
@@ -182,6 +255,21 @@ func writeText(b *strings.Builder, tb layout.TextBox, c geom.Point, color, extra
 		// The baseline sits about 0.35 em below the middle of the line.
 		y := top + (float64(i)+0.5)*tb.LineHeight + 0.35*tb.Style.Size
 		fmt.Fprintf(b, `<tspan x="%s" y="%s">%s</tspan>`, num(c.X), num(y), html.EscapeString(line))
+	}
+	b.WriteString("</text>")
+}
+
+// writeTextFrom writes a text's lines aligned left on left.X, centered
+// on its Y.
+func writeTextFrom(b *strings.Builder, tb layout.TextBox, left geom.Point, color, extra string) {
+	if len(tb.Lines) == 0 {
+		return
+	}
+	top := left.Y - tb.H/2
+	fmt.Fprintf(b, `<text fill="%s"%s>`, attr(color), extra)
+	for i, line := range tb.Lines {
+		y := top + (float64(i)+0.5)*tb.LineHeight + 0.35*tb.Style.Size
+		fmt.Fprintf(b, `<tspan x="%s" y="%s">%s</tspan>`, num(left.X), num(y), html.EscapeString(line))
 	}
 	b.WriteString("</text>")
 }
@@ -246,5 +334,48 @@ func pathData(p geom.Path) string {
 			b.WriteByte('Z')
 		}
 	}
+	return b.String()
+}
+
+// Pie draws a laid out pie chart. fontSize is the size the layout was made
+// with.
+func Pie(lay *layout.Pie, th Theme, fontSize float64) string {
+	var b strings.Builder
+	w, h := lay.Width, lay.Height
+	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" width="%s" height="%s" viewBox="0 0 %s %s" font-family="%s" font-size="%s">`,
+		num(w), num(h), num(w), num(h), attr(th.FontFamily), num(fontSize))
+	b.WriteByte('\n')
+	if th.Background != "" {
+		fmt.Fprintf(&b, `<rect width="100%%" height="100%%" fill="%s"/>`+"\n", attr(th.Background))
+	}
+	writeText(&b, lay.Title, lay.TitleAt, th.Text, ` font-weight="bold"`)
+	if len(lay.Title.Lines) > 0 {
+		b.WriteByte('\n')
+	}
+	empty := true
+	for _, s := range lay.Slices {
+		if s.End > s.Start {
+			empty = false
+		}
+	}
+	if empty {
+		fmt.Fprintf(&b, `<circle cx="%s" cy="%s" r="%s" fill="none" stroke="%s"/>`+"\n",
+			num(lay.Center.X), num(lay.Center.Y), num(lay.Radius), attr(th.ClusterStroke))
+	}
+	for _, s := range lay.Slices {
+		color := th.SeriesColor(s.Series)
+		fmt.Fprintf(&b, `<g class="slice" data-id="%s">`, attr(s.ID))
+		if s.End > s.Start {
+			// A gap of the background between slices.
+			fmt.Fprintf(&b, `<path d="%s" fill="%s" stroke="%s" stroke-width="2" stroke-linejoin="round"/>`,
+				pathData(layout.Wedge(lay.Center, lay.Radius, s.Start, s.End)), attr(color), attr(th.background()))
+		}
+		fmt.Fprintf(&b, `<rect x="%s" y="%s" width="%s" height="%s" rx="%s" fill="%s"/>`,
+			num(s.Swatch.X), num(s.Swatch.Y), num(s.Swatch.W), num(s.Swatch.H), num(0.2*fontSize), attr(color))
+		writeText(&b, s.Label, s.LabelAt, th.Text, "")
+		writeText(&b, s.Share, s.ShareAt, th.ClusterText, "")
+		b.WriteString("</g>\n")
+	}
+	b.WriteString("</svg>\n")
 	return b.String()
 }

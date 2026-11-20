@@ -1,0 +1,15 @@
+stateDiagram-v2
+    [*] --> Stopped
+    Stopped --> Active : play
+    Active --> Stopped : stop
+
+    state Active {
+        [*] --> Playing
+        Playing --> Paused : pause
+        Paused --> Playing : resume
+        Playing --> Buffering : network slow
+        Buffering --> Playing : buffer full
+    }
+
+    Active --> Error : decode error
+    Error --> Stopped : reset

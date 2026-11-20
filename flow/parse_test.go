@@ -359,3 +359,14 @@ func TestCompare(t *testing.T) {
 		t.Errorf("diff %+v", d)
 	}
 }
+
+// TestFrontMatterStreaming checks that front matter still being written
+// is no problem, and that one never closed is, once the source is complete.
+func TestFrontMatterStreaming(t *testing.T) {
+	if g := Parse("---\ntitle: x\n", false); len(g.Problems) > 0 {
+		t.Errorf("streaming: %+v", g.Problems)
+	}
+	if g := Parse("---\ntitle: x\n", true); len(g.Problems) == 0 {
+		t.Error("an unclosed front matter is not reported")
+	}
+}

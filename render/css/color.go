@@ -174,3 +174,15 @@ var named = map[string]string{
 	"darkviolet": "9400d3", "mediumpurple": "9370db", "rebeccapurple": "663399", "hotpink": "ff69b4",
 	"deeppink": "ff1493", "darkslategray": "2f4f4f", "dimgray": "696969", "dimgrey": "696969",
 }
+
+// Mix returns the color t of the way from a to b, as hex; a when either
+// cannot be read.
+func Mix(a, b string, t float64) string {
+	ca, ok1 := ParseColor(a)
+	cb, ok2 := ParseColor(b)
+	if !ok1 || !ok2 {
+		return a
+	}
+	f := func(x, y uint8) uint8 { return uint8(math.Round(float64(x)*(1-t) + float64(y)*t)) }
+	return Color{f(ca.R, cb.R), f(ca.G, cb.G), f(ca.B, cb.B), 255}.Hex()
+}

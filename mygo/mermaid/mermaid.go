@@ -1,5 +1,6 @@
 // Package mermaid draws Mermaid diagrams natively in MyGo, as they stream
-// in: flowcharts and sequence diagrams. Shapes and lines are painted, and
+// in: flowcharts, sequence diagrams, state diagrams, class diagrams, ER
+// diagrams, mind maps and pie charts. Shapes and lines are painted, and
 // labels are text elements, which the user can select and copy. As a
 // diagram grows, what is there stays where it is, new parts fade in and
 // new lines are drawn from their start to their end; with the desktop's
@@ -28,8 +29,9 @@ import (
 	"github.com/momaek/streameraid/flow"
 	"github.com/momaek/streameraid/geom"
 	"github.com/momaek/streameraid/layout"
+	"github.com/momaek/streameraid/layout/piechart"
 	"github.com/momaek/streameraid/layout/sequence"
-	"github.com/momaek/streameraid/layout/sugiyama"
+	"github.com/momaek/streameraid/pie"
 	"github.com/momaek/streameraid/seq"
 )
 
@@ -43,8 +45,9 @@ type Options struct {
 	// Labels are the texts the view shows; empty fields take English
 	// ones.
 	Labels Labels
-	// OnNodeClick, when set, is called with the ID of the node of a
-	// flowchart the user clicks. The pointer then shows a hand over nodes,
+	// OnNodeClick, when set, is called with the ID of the node the user
+	// clicks, in diagrams drawn as nodes and edges (all kinds but sequence
+	// diagrams and pie charts). The pointer then shows a hand over nodes,
 	// and their labels are clicked rather than selected; the other texts
 	// of the diagram can still be selected.
 	OnNodeClick func(id string)
@@ -105,9 +108,7 @@ var ChineseLabels = Labels{
 }
 
 // Supported reports whether View draws diagrams of a kind.
-func Supported(k streameraid.Kind) bool {
-	return k == streameraid.Flowchart || k == streameraid.Sequence
-}
+func Supported(k streameraid.Kind) bool { return streameraid.Supported(k) }
 
 // CodeBlock is a hook for MyGo's Markdown view that draws mermaid blocks
 // as diagrams, while they stream in too. Blocks of kinds of diagrams not
@@ -138,7 +139,7 @@ func CodeBlockWith(o Options) func(*ui.Context, *markdown.CodeBlockView) {
 // maybeSupported reports whether word may be the start of the header of a
 // diagram View draws.
 func maybeSupported(word string) bool {
-	for _, k := range []string{"flowchart", "graph", "sequenceDiagram"} {
+	for _, k := range []string{"flowchart", "graph", "sequenceDiagram", "stateDiagram", "classDiagram", "erDiagram", "mindmap", "pie"} {
 		if strings.HasPrefix(k, word) || strings.HasPrefix(word, k) {
 			return true
 		}
@@ -166,6 +167,7 @@ type state struct {
 	lay    *layout.Flow
 	seq    *seq.Diagram
 	seqLay *layout.Sequence
+	pieLay *layout.Pie
 
 	problems   []problem
 	motion     *transition
@@ -242,13 +244,25 @@ func (s *state) update(src string, final bool, fontSize float64, now time.Time, 
 			s.problems = append(s.problems, problem{p.Line, p.Msg})
 		}
 		to = frameOfSequence(s.seqLay)
-	default:
-		hints := sugiyama.Hints{}
-		if follow {
-			hints = sugiyama.Hints{Prev: s.lay, Anchor: !final}
+	case streameraid.Pie:
+		c := pie.Parse(src, final)
+		s.pieLay = piechart.Layout(c, sharedMeasurer, s.opt)
+		for _, p := range c.Problems {
+			s.problems = append(s.problems, problem{p.Line, p.Msg})
 		}
-		s.graph = flow.Parse(src, final)
-		s.lay = sugiyama.LayoutWith(s.graph, sharedMeasurer, s.opt, hints)
+		to = frameOfPie(s.pieLay)
+	default:
+		var prev *layout.Flow
+		if follow {
+			prev = s.lay
+		}
+		gk := kind
+		if !streameraid.IsGraph(gk) {
+			// Not a kind drawn: read as a flowchart, which reports why.
+			gk = streameraid.Flowchart
+		}
+		s.graph = streameraid.ParseGraph(gk, src, final)
+		s.lay = streameraid.LayoutGraph(gk, s.graph, sharedMeasurer, s.opt, prev, !final)
 		for _, p := range s.graph.Problems {
 			s.problems = append(s.problems, problem{p.Line, p.Msg})
 		}
@@ -266,7 +280,7 @@ func (s *state) update(src string, final bool, fontSize float64, now time.Time, 
 	}
 }
 
-// View draws the diagram src: a flowchart or a sequence diagram.
+// View draws the diagram src, of a kind Supported reports.
 func View(c *ui.Context, src string, o Options) ui.Element {
 	th := c.Theme()
 	fs := o.FontSize
@@ -366,6 +380,14 @@ func diagram(c *ui.Context, st *state, th *ui.Theme, root ui.Element, o Options,
 				}
 				p.Transform(ui.Scaling(float32(z), float32(z)), r.X, r.Y, draw)
 			}
+			if st.kind == streameraid.Pie {
+				lay := st.pieLay
+				box.Draw(func(p *ui.Painter, r ui.Rect) {
+					scaled(p, r, func() { paintPie(p, r, lay, f, pal, fs) })
+				})
+				box.Children(func() { pieLabels(c, lay, f, pal, z) })
+				return
+			}
 			if st.kind == streameraid.Sequence {
 				lay, to := st.seqLay, st.motion.to
 				box.Draw(func(p *ui.Painter, r ui.Rect) {
@@ -396,10 +418,27 @@ func diagram(c *ui.Context, st *state, th *ui.Theme, root ui.Element, o Options,
 						labelText(c, e.Label, ef.labelAt, pal.styled(g.Edges[e.Index].Style.Color, pal.text), ef.drawn, z)
 					}
 				}
+				for _, e := range lay.Edges {
+					if g.Edges[e.Index].Line == flow.Invisible {
+						continue
+					}
+					ef, to := f.edges[e.ID], st.motion.to.edges[e.ID]
+					color := pal.styled(g.Edges[e.Index].Style.Color, pal.text)
+					// The texts at the ends follow their ends as the edge moves.
+					sx, sy := moved(ef, to, true)
+					ex, ey := moved(ef, to, false)
+					labelText(c, e.StartLabel, e.StartAt.Add(geom.Point{X: float64(sx), Y: float64(sy)}), color, ef.drawn, z)
+					labelText(c, e.EndLabel, e.EndAt.Add(geom.Point{X: float64(ex), Y: float64(ey)}), color, (ef.drawn-0.8)/0.2, z)
+				}
 				for _, nb := range lay.Nodes {
 					nf := f.nodes[nb.ID]
 					_, _, text := pal.node(g, g.Nodes[nb.ID])
 					labelText(c, nb.Label, layout.LabelCenter(nb.Shape, nf.rect), text, nf.alpha, z)
+					if nb.Table != nil {
+						for _, cell := range nb.Table.Cells {
+							labelText(c, cell.Text, nb.Table.CellAt(cell, nf.rect), text, nf.alpha, z)
+						}
+					}
 				}
 				if o.OnNodeClick == nil {
 					return
@@ -408,8 +447,12 @@ func diagram(c *ui.Context, st *state, th *ui.Theme, root ui.Element, o Options,
 				// so their labels are clicked rather than selected.
 				for _, nb := range lay.Nodes {
 					id, r := nb.ID, f.nodes[nb.ID].rect
+					name := id
+					if n := g.Nodes[id]; n != nil && n.Label != "" {
+						name, _, _ = strings.Cut(n.Label, "\n")
+					}
 					ui.Box(c).Absolute().Left(float32(r.X*z)).Top(float32(r.Y*z)).Size(float32(r.W*z), float32(r.H*z)).
-						Cursor(ui.CursorPointer).Label(strings.ReplaceAll(nb.Label.Lines[0], "\n", " ")).
+						Cursor(ui.CursorPointer).Label(name).
 						OnClick(func() { o.OnNodeClick(id) })
 				}
 			})

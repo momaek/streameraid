@@ -1,0 +1,14 @@
+stateDiagram-v2
+    %% Elevator controller
+    classDef moving fill:#dbeafe,stroke:#2563eb,stroke-width:2px
+    classDef stopped fill:#f3f4f6
+
+    [*] --> Idle:::stopped
+    Idle --> MovingUp:::moving : call above
+    Idle --> MovingDown:::moving : call below
+    MovingUp --> DoorsOpen : arrived
+    MovingDown --> DoorsOpen : arrived
+    DoorsOpen --> Idle : timeout
+    DoorsOpen --> DoorsOpen : obstruction
+
+    style DoorsOpen fill:#fef3c7,stroke:#d97706

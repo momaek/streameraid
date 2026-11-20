@@ -1,0 +1,22 @@
+erDiagram
+    PATIENT ||--o{ APPOINTMENT : books
+    DOCTOR ||--o{ APPOINTMENT : attends
+    DEPARTMENT ||--|{ DOCTOR : employs
+    APPOINTMENT ||--o| PRESCRIPTION : "may result in"
+    PRESCRIPTION }|--|{ MEDICATION : lists
+    PATIENT {
+        string mrn PK "medical record number"
+        string full_name
+        date dob
+    }
+    DOCTOR {
+        int id PK
+        string name
+        int department_id FK
+    }
+    APPOINTMENT {
+        int id PK
+        string patient_mrn FK
+        int doctor_id FK
+        datetime scheduled_at
+    }

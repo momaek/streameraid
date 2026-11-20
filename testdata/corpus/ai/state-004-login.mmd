@@ -1,0 +1,15 @@
+stateDiagram-v2
+    state check_credentials <<choice>>
+    state "Logged Out" as LoggedOut
+    state "Logged In" as LoggedIn
+    state "Account Locked" as Locked
+
+    [*] --> LoggedOut
+    LoggedOut --> Authenticating : submit credentials
+    Authenticating --> check_credentials
+    check_credentials --> LoggedIn : valid
+    check_credentials --> LoggedOut : invalid (attempts < 5)
+    check_credentials --> Locked : invalid (attempts >= 5)
+    LoggedIn --> LoggedOut : logout
+    Locked --> LoggedOut : admin unlock
+    LoggedIn --> [*]

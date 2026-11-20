@@ -1,0 +1,17 @@
+erDiagram
+  CAR {
+    string registrationNumber
+    string make
+    string model
+  }
+  PERSON {
+    string firstName
+    string lastName
+    int age
+  }
+  HOUSE
+
+  classDef someclass fill:#f96
+  class CAR,PERSON someclass
+
+  CAR ||--o{ PERSON : allows

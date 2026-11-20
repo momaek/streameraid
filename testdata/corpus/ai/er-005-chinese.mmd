@@ -1,0 +1,25 @@
+erDiagram
+    用户 ||--o{ 订单 : 下单
+    订单 ||--|{ 订单明细 : 包含
+    商品 ||--o{ 订单明细 : 被购买
+    用户 {
+        int 用户ID PK
+        string 用户名
+        string 手机号 UK
+    }
+    订单 {
+        int 订单ID PK
+        int 用户ID FK
+        decimal 总金额
+        string 状态 "待支付/已支付/已发货"
+    }
+    订单明细 {
+        int 订单ID FK
+        int 商品ID FK
+        int 数量
+    }
+    商品 {
+        int 商品ID PK
+        string 名称
+        decimal 单价
+    }

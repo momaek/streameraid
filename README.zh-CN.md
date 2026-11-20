@@ -10,7 +10,7 @@ streameraid 解析、布局、绘制 Mermaid 图表，不需要浏览器、WebVi
 
 ![时序图随源码流式输出逐步画出](docs/images/sequence.gif)
 
-> **状态：早期阶段，尚未发布。** 目前能画流程图和时序图，其他类型按代码显示。还没有打版本号，下面的 `go get` 和 `go install` 命令要等第一个版本发布后才能用，在那之前请克隆仓库。API 可能变化。
+> **状态：早期阶段，尚未发布。** 目前能画流程图、时序图、状态图、类图、ER 图、思维导图和饼图，其他类型（甘特图、时间线等）按代码显示。还没有打版本号，下面的 `go get` 和 `go install` 命令要等第一个版本发布后才能用，在那之前请克隆仓库。API 可能变化。
 
 ## 为什么做
 
@@ -48,7 +48,7 @@ app.md.Code = map[string]func(*ui.Context, *markdown.CodeBlockView){
 | --- | --- |
 | `Streaming` | 源码还在输出。`CodeBlock` 会根据代码块是否闭合自动设置。 |
 | `FontSize` | 标签字号，默认用主题的字号。 |
-| `OnNodeClick` | 用户点击流程图节点时调用，参数是节点 ID。 |
+| `OnNodeClick` | 用户点击节点时调用，参数是节点 ID。适用于由节点和连线组成的图（时序图和饼图以外的都是）。 |
 | `OnExport` | 用户导出图表时收到 SVG；不设置则复制到剪贴板。 |
 | `NoToolbar` | 不显示鼠标移到图上时出现的工具条。 |
 | `NoFit` | 很宽的图保持原大小、横向滚动，而不是闭合后缩小到适应宽度。 |
@@ -80,7 +80,7 @@ svg, err := streameraid.RenderSVG(src, streameraid.Options{Dark: true})
 
 `Render` 还会返回没能读懂的语句：图的其余部分照常画出。
 
-底下的包可以单独使用：`flow` 和 `seq` 负责解析，`layout/sugiyama` 和 `layout/sequence` 负责布局，`render/svg` 负责绘制。布局通过一个接口测量文字，所以渲染器可以用自己实际绘制的字体来测量。
+底下的包可以单独使用：`flow`、`seq`、`state`、`class`、`er`、`mindmap` 和 `pie` 负责解析，`layout/sugiyama`、`layout/sequence`、`layout/tree` 和 `layout/piechart` 负责布局，`render/svg` 负责绘制。状态图、类图、ER 图和思维导图都解析成流程图的模型 `flow.Graph`，共用它的布局、绘制和动画；`streameraid.ParseGraph` 和 `LayoutGraph` 按类型选用对应的实现。布局通过一个接口测量文字，所以渲染器可以用自己实际绘制的字体来测量。
 
 ## 作为命令行使用
 
@@ -112,9 +112,35 @@ streameraid render -dark -bg '#0d1117' < diagram.mmd > diagram.svg
 - `activate` 和 `deactivate`，`Note left of`、`right of`、`over`，`autonumber`，标题。
 - `loop`、`alt` / `else`、`opt`、`par` / `and`、`critical` / `option`、`break`、`rect`，可嵌套。
 
+**状态图**（`stateDiagram`、`stateDiagram-v2`）
+
+- 状态，`state "text" as S` 和描述（`S : text`）；`[*]` 作为起点和终点，每个复合状态各有一套。
+- `<<choice>>`、`<<fork>>`、`<<join>>`；复合状态，可嵌套，可带 `direction`；并发区域（`--`）。
+- 带文字的转换；`note left of` 和 `right of`，单行或多行。
+- `classDef`、`class`、`:::`、`style`。
+
+**类图**（`classDiagram`）
+
+- 类及其属性和方法，写在块里或写成 `A : member`；注解（`<<interface>>`）；泛型（`List~T~`）；标签（`A["text"]`）。
+- 关系：继承、组合、聚合、关联、依赖、实现，实线和虚线连接，棒棒糖接口，双向；两端的基数（`"1" --> "*"`）和标签。
+- `namespace`、`note for`、`direction`、`classDef`、`cssClass`、`:::`、`style`。
+
+**ER 图**（`erDiagram`）
+
+- 实体及其属性（类型、名称、键、注释），按列对齐；别名（`p[Person]`）。
+- 鸦脚标记的关系，符号或文字写法（`one or more`、`zero or one` 等），标识和非标识关系，带标签。
+
+**思维导图**（`mindmap`）
+
+- 按缩进组成的树；普通节点，以及方形、圆角、圆、爆炸形、云形和六边形；Markdown 字符串；`:::` 类。每个分支一种颜色。图标不画。
+
+**饼图**（`pie`）
+
+- 带标签和数值的扇区，`title`、`showData`；图例里列出每块的占比。
+
 **不画的**
 
-- 其他类型的图（类图、状态图、ER 图、思维导图、饼图、甘特图等）：按代码显示。
+- 其他类型的图（甘特图、时间线、旅程图等）：按代码显示。
 - `click` 动作，以及 `%%{init}%%` 里的大部分配置。
 - 时序图的参与者只在顶部画一次，底部不重复；`links` 和 `actor` 以外的参与者类型被忽略。
 
@@ -123,10 +149,10 @@ streameraid render -dark -bg '#0d1117' < diagram.mmd > diagram.svg
 ## 怎么做到不跳动
 
 - **解析。** 每次都把全文重新解析一遍，只要几微秒。在最后一行，一个到达源码末尾的名字可能还会变长（`B`，然后 `Ba`，然后 `Bar`），所以先不为它创建节点：不会出现"出现、消失、再出现"。
-- **布局。** 流程图用分层布局，和 dagre 是一类算法。流式输出期间，上一次布局里的节点被固定在原位，新节点放在它们旁边。时序图向下生长，生命线只会互相远离。
+- **布局。** 流程图用分层布局，和 dagre 是一类算法。流式输出期间，上一次布局里的节点被固定在原位，新节点放在它们旁边。时序图向下生长，生命线只会互相远离。思维导图里已有的节点固定不动，只在分支末端生长；饼图位置不变，只有扇区的角度变化。
 - **测试。** 语料里的每个样例都被逐字流式喂入，检查途中每个布局都没有节点重叠，并统计移动了多少。阈值是测试的一部分。
 
-在流程图语料上，参考上一帧时每次变化挪动 5.9% 的节点，每次从头排则是 14.4%。
+在流程图语料上，参考上一帧时每次变化挪动 5.9% 的节点，每次从头排则是 14.4%；思维导图上是 1.7% 对 25.3%。
 
 ## 环境要求
 

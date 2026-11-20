@@ -1,0 +1,50 @@
+erDiagram
+    CUSTOMER ||--o{ ORDER : places
+    ORDER ||--|{ ORDER_ITEM : contains
+    PRODUCT ||--o{ ORDER_ITEM : "is ordered in"
+    CATEGORY ||--o{ PRODUCT : groups
+    ORDER ||--o| PAYMENT : "paid by"
+    CUSTOMER ||--o{ ADDRESS : has
+
+    CUSTOMER {
+        uuid id PK
+        varchar(255) email UK
+        varchar(100) name
+        timestamp created_at
+    }
+    ORDER {
+        uuid id PK
+        uuid customer_id FK
+        decimal(10,2) total
+        enum status "pending, paid, shipped"
+    }
+    ORDER_ITEM {
+        uuid order_id PK, FK
+        uuid product_id PK, FK
+        int quantity
+        decimal(10,2) unit_price
+    }
+    PRODUCT {
+        uuid id PK
+        uuid category_id FK
+        string name
+        decimal(10,2) price
+        int stock
+    }
+    CATEGORY {
+        uuid id PK
+        string name
+    }
+    PAYMENT {
+        uuid id PK
+        uuid order_id FK
+        string provider
+        string status
+    }
+    ADDRESS {
+        uuid id PK
+        uuid customer_id FK
+        string line1
+        string city
+        string country
+    }

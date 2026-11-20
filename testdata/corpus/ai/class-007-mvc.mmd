@@ -1,0 +1,27 @@
+classDiagram
+    namespace Model {
+        class Article {
+            +int id
+            +String title
+            +String body
+        }
+        class Comment {
+            +int id
+            +String text
+        }
+    }
+    namespace View {
+        class ArticleView {
+            +render(article: Article) String
+        }
+    }
+    namespace Controller {
+        class ArticleController {
+            -ArticleService service
+            +show(id: int) Response
+            +create(req: Request) Response
+        }
+    }
+    Article "1" *-- "*" Comment
+    ArticleController --> ArticleView
+    ArticleController ..> Article
