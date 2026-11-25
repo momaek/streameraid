@@ -89,8 +89,8 @@ type classInfo struct {
 	partial    bool
 	annotation string
 	body       bool // the class has a { } block
-	attrs      [][]string
-	methods    [][]string
+	attrs      flow.Section
+	methods    flow.Section
 }
 
 type parser struct {
@@ -501,6 +501,22 @@ func (p *parser) namespace(rest string, tail bool) {
 		return
 	}
 	sc.skipSpace()
+	title := name
+	if !sc.eof() && sc.peek() == '[' {
+		// namespace Auth["Authentication Service"] {
+		end := strings.IndexByte(sc.s[sc.i:], ']')
+		if end < 0 {
+			if !tail {
+				p.problem("namespace %s: label is missing its closing ]", name)
+			}
+			return
+		}
+		if t := label.Clean(label.Unquote(strings.TrimSpace(sc.s[sc.i+1 : sc.i+end]))); t != "" {
+			title = t
+		}
+		sc.i += end + 1
+		sc.skipSpace()
+	}
 	if sc.eof() || sc.peek() != '{' {
 		if !tail {
 			p.problem("namespace %s needs a {", name)
@@ -513,7 +529,7 @@ func (p *parser) namespace(rest string, tail bool) {
 		if len(p.stack) > 0 {
 			parent = p.stack[len(p.stack)-1]
 		}
-		sg = &flow.Subgraph{ID: name, Title: name, Parent: parent, Order: p.sgOrder}
+		sg = &flow.Subgraph{ID: name, Title: title, Parent: parent, Order: p.sgOrder}
 		p.sgOrder++
 		p.g.Subgraphs[name] = sg
 		p.g.SubgraphOrder = append(p.g.SubgraphOrder, name)
@@ -773,23 +789,32 @@ func (p *parser) edge(from, to string, e flow.Edge) {
 // addMember adds a member to a class: a method when it has parentheses,
 // an attribute otherwise.
 func addMember(info *classInfo, text string) {
-	m, method := member(text)
+	m, method, st := member(text)
 	if m == "" {
 		return
 	}
+	sec := &info.attrs
 	if method {
-		info.methods = append(info.methods, []string{m})
-	} else {
-		info.attrs = append(info.attrs, []string{m})
+		sec = &info.methods
 	}
+	if st != 0 {
+		for len(sec.RowStyles) < len(sec.Rows) {
+			sec.RowStyles = append(sec.RowStyles, 0)
+		}
+		sec.RowStyles = append(sec.RowStyles, st)
+	}
+	sec.Rows = append(sec.Rows, []string{m})
 }
 
-// member returns the text a member is shown with, and whether it is a
-// method. The classifiers $ (static) and * (abstract) go, ~T~ becomes <T>
-// and a method's return type follows a colon, as Mermaid shows them.
-func member(text string) (string, bool) {
-	text = strings.TrimRight(strings.TrimSpace(text), "$*")
+// member returns the text a member is shown with, whether it is a method,
+// and how it is drawn. The classifiers $ (static, underlined) and *
+// (abstract, in italics) go, ~T~ becomes <T> and a method's return type
+// follows a colon, as Mermaid shows them. A method's classifier may come
+// right after its parentheses, or after its return type.
+func member(text string) (string, bool, flow.RowStyle) {
 	text = strings.TrimSpace(text)
+	st := classifiers(text[len(strings.TrimRight(text, "$*")):])
+	text = strings.TrimSpace(strings.TrimRight(text, "$*"))
 	vis := ""
 	if text != "" && strings.ContainsRune("+-#~", rune(text[0])) {
 		vis, text = text[:1], text[1:]
@@ -798,7 +823,9 @@ func member(text string) (string, bool) {
 	text = generics(text)
 	if method {
 		if j := strings.LastIndexByte(text, ')'); j >= 0 {
-			ret := strings.TrimSpace(strings.TrimLeft(text[j+1:], "$*"))
+			ret := strings.TrimSpace(text[j+1:])
+			st |= classifiers(ret[:len(ret)-len(strings.TrimLeft(ret, "$*"))])
+			ret = strings.TrimSpace(strings.TrimLeft(ret, "$*"))
 			text = text[:j+1]
 			if ret != "" {
 				if strings.HasPrefix(ret, ":") {
@@ -809,7 +836,19 @@ func member(text string) (string, bool) {
 			}
 		}
 	}
-	return vis + text, method
+	return vis + text, method, st
+}
+
+// classifiers returns the style the classifiers in s ask for.
+func classifiers(s string) flow.RowStyle {
+	var st flow.RowStyle
+	if strings.Contains(s, "*") {
+		st |= flow.RowItalic
+	}
+	if strings.Contains(s, "$") {
+		st |= flow.RowUnderline
+	}
+	return st
 }
 
 // generics turns Mermaid's generic types (List~int~, Map~K,List~V~~) into
@@ -904,8 +943,8 @@ func (p *parser) finish() {
 			} else {
 				secs = append(secs, flow.Section{Rows: [][]string{{name}}, Center: true, Bold: true})
 			}
-			if info.body || len(info.attrs)+len(info.methods) > 0 {
-				secs = append(secs, flow.Section{Rows: info.attrs}, flow.Section{Rows: info.methods})
+			if info.body || len(info.attrs.Rows)+len(info.methods.Rows) > 0 {
+				secs = append(secs, info.attrs, info.methods)
 			}
 			n.Label, n.Partial = name, info.partial
 			n.Table = &flow.Table{Sections: secs}

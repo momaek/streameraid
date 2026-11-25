@@ -1,0 +1,5 @@
+stateDiagram-v2
+    %% Chained transitions, as models often write them
+    [*] --> Draft --> Review --> Published --> [*]
+    Review --> Draft : changes requested
+    Published --> Archived --> [*]

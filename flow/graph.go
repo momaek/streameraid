@@ -208,6 +208,27 @@ type Section struct {
 	// Joined draws the section with no line above it, as a part of the
 	// section before: a class's name under its annotation.
 	Joined bool
+	// RowStyles, when set, styles the rows: RowStyles[i] is that of
+	// Rows[i]. Rows past its end are plain.
+	RowStyles []RowStyle
+}
+
+// RowStyle is how a row of a Section is drawn, as UML draws members.
+type RowStyle uint8
+
+const (
+	// RowItalic draws the row in italics: an abstract member.
+	RowItalic RowStyle = 1 << iota
+	// RowUnderline underlines the row: a static member.
+	RowUnderline
+)
+
+// RowStyle returns the style of row i.
+func (s Section) RowStyle(i int) RowStyle {
+	if i < len(s.RowStyles) {
+		return s.RowStyles[i]
+	}
+	return 0
 }
 
 // Edge is an edge of the graph.

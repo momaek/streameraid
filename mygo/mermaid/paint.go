@@ -323,6 +323,12 @@ func labelText(c *ui.Context, tb layout.TextBox, center geom.Point, color ui.Col
 			Left(float32(center.X)*k - w/2).
 			Top(top + float32(i)*float32(tb.LineHeight)*k + shift).
 			FontSize(size * k).FontWeight(weight).TextColor(color).NoWrap()
+		if tb.Style.Italic {
+			t.Italic()
+		}
+		if tb.Style.Underline {
+			t.Underline()
+		}
 		if alpha < 1 {
 			t.Opacity(float32(max(alpha, 0)))
 		}

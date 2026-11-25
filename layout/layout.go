@@ -13,6 +13,8 @@ type TextStyle struct {
 	Family       string
 	Size         float64
 	Bold, Italic bool
+	// Underline underlines the text. It does not change its size.
+	Underline bool
 }
 
 // TextBox is a measured text: its size and its lines after wrapping.

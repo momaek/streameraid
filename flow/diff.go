@@ -87,8 +87,17 @@ func sameTable(a, b *Table) bool {
 	}
 	return slices.EqualFunc(a.Sections, b.Sections, func(x, y Section) bool {
 		return x.Center == y.Center && x.Bold == y.Bold && x.Small == y.Small && x.Joined == y.Joined &&
-			slices.EqualFunc(x.Rows, y.Rows, slices.Equal)
+			slices.EqualFunc(x.Rows, y.Rows, slices.Equal) && sameRowStyles(x, y)
 	})
+}
+
+func sameRowStyles(a, b Section) bool {
+	for i := range max(len(a.RowStyles), len(b.RowStyles)) {
+		if a.RowStyle(i) != b.RowStyle(i) {
+			return false
+		}
+	}
+	return true
 }
 
 func sameEdge(a, b *Edge) bool {

@@ -69,6 +69,9 @@ func TestShapes(t *testing.T) {
     h["` + "`**Bold** and *italic*`" + `"]
     i[Line one<br/>line two]
     Python (Django)
+    j(-Default-)
+    (-No id either-)
+    k(-1 °C)
 `
 	want := `n0 round root
   n0.0 rect Square
@@ -83,6 +86,9 @@ func TestShapes(t *testing.T) {
   n0.9 rect Bold and italic
   n0.10 rect Line one|line two
   n0.11 round Django
+  n0.12 round Default
+  n0.13 round No id either
+  n0.14 round -1 °C
 `
 	g := Parse(src, true)
 	if got := outline(g); got != want {
@@ -157,7 +163,7 @@ func TestSeries(t *testing.T) {
 func TestIconsAndClasses(t *testing.T) {
 	src := "mindmap\n  Root\n    A[A]\n    ::icon(fa fa-book)\n    :::urgent large\n    B\n  :::big\nclassDef urgent fill:#f00,color:#fff\n"
 	g := Parse(src, true)
-	if got := outline(g); got != "n0 round Root\n  n0.0 rect A\n  n0.1 round B\n" {
+	if got := outline(g); got != "n0 round Root\n  n0.0 rect 📖 A\n  n0.1 round B\n" {
 		t.Errorf("got\n%s", got)
 	}
 	if c := g.Nodes["n0.0"].Classes; !slices.Equal(c, []string{"urgent", "large"}) {
@@ -171,6 +177,31 @@ func TestIconsAndClasses(t *testing.T) {
 	}
 	if len(g.Problems) > 0 {
 		t.Errorf("problems %+v", g.Problems)
+	}
+}
+
+func TestIconGlyphs(t *testing.T) {
+	for classes, want := range map[string]string{
+		"fa fa-book":            "📖",
+		"fa-solid fa-rocket":    "🚀",
+		"fas fa-lg fa-cog":      "⚙️",
+		"mdi mdi-skull-outline": "💀",
+		"FA FA-BRAIN":           "🧠",
+		"fa fa-no-such-icon":    "",
+		"fa":                    "",
+		"":                      "",
+	} {
+		if got := Glyph(classes); got != want {
+			t.Errorf("Glyph(%q) = %q, want %q", classes, got, want)
+		}
+	}
+	// An icon unknown, or twice: the label keeps one glyph, or none.
+	g := Parse("mindmap\n  Root\n    A\n    ::icon(fa fa-star)\n    ::icon(fa fa-fire)\n    B\n    ::icon(fa fa-nothing)\n    C(( ))\n    ::icon(fa fa-bug)\n", true)
+	if got := outline(g); got != "n0 round Root\n  n0.0 round 🔥 A\n  n0.1 round B\n  n0.2 circle 🐛\n" {
+		t.Errorf("got\n%s", got)
+	}
+	if g := Parse("mindmap\n  Root\n    ::icon(fa fa-book\n", true); len(g.Problems) != 1 {
+		t.Errorf("an icon not closed: %+v", g.Problems)
 	}
 }
 
@@ -248,6 +279,10 @@ func TestStreamingTail(t *testing.T) {
 		{"id{", ""},
 		{"id{{He", "n0.0 hexagon He …"},
 		{"id{{Hex}", "n0.0 hexagon Hex …"},
+		{"id(-", ""},
+		{"id(-De", "n0.0 round De …"},
+		{"id(-Default-", "n0.0 round Default …"},
+		{"id(-Default-)", "n0.0 round Default"},
 		{"my node(", "n0.0 round my node …"},
 		{":", ""},
 		{"::icon(fa", ""},
