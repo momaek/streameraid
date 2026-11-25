@@ -1,0 +1,23 @@
+erDiagram
+    EMPLOYEE }o--|| DEPARTMENT : "works in"
+    EMPLOYEE |o--o{ EMPLOYEE : manages
+    EMPLOYEE ||--o{ TIMESHEET : submits
+    DEPARTMENT ||--o| EMPLOYEE : "is headed by"
+    EMPLOYEE {
+        int emp_id PK
+        string first_name
+        string last_name
+        int dept_id FK
+        int manager_id FK "nullable"
+        decimal salary
+    }
+    DEPARTMENT {
+        int dept_id PK
+        string name UK
+    }
+    TIMESHEET {
+        int id PK
+        int emp_id FK
+        date week_start
+        float hours
+    }

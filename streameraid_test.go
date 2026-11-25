@@ -57,7 +57,9 @@ func TestDetect(t *testing.T) {
 		"%%{init: {}}%%\n\ngraph TD\nA":      Flowchart,
 		"---\ntitle: x\n---\nflowchart LR\n": Flowchart,
 		"sequenceDiagram\nA->>B: hi":         Sequence,
-		"pie\n\"a\": 1":                      "pie",
+		"pie\n\"a\": 1":                      Pie,
+		"stateDiagram-v2\n[*] --> A":         State,
+		"gantt\ntitle x":                     "gantt",
 		"":                                   "",
 	} {
 		if got := Detect(src); got != want {
@@ -67,7 +69,7 @@ func TestDetect(t *testing.T) {
 }
 
 func TestUnsupported(t *testing.T) {
-	_, err := RenderSVG("pie\n\"a\": 1", Options{})
+	_, err := RenderSVG("gantt\n  title x", Options{})
 	if !errors.Is(err, ErrUnsupported) {
 		t.Errorf("err %v", err)
 	}

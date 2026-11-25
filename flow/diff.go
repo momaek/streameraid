@@ -77,10 +77,22 @@ func Compare(old, cur *Graph) Diff {
 
 func sameNode(a, b *Node) bool {
 	return a.Label == b.Label && a.Shape == b.Shape && a.Subgraph == b.Subgraph &&
-		a.Style == b.Style && a.Partial == b.Partial && slices.Equal(a.Classes, b.Classes)
+		a.Style == b.Style && a.Partial == b.Partial && slices.Equal(a.Classes, b.Classes) &&
+		a.Series == b.Series && sameTable(a.Table, b.Table)
+}
+
+func sameTable(a, b *Table) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return slices.EqualFunc(a.Sections, b.Sections, func(x, y Section) bool {
+		return x.Center == y.Center && x.Bold == y.Bold && x.Small == y.Small && x.Joined == y.Joined &&
+			slices.EqualFunc(x.Rows, y.Rows, slices.Equal)
+	})
 }
 
 func sameEdge(a, b *Edge) bool {
 	return a.Label == b.Label && a.Line == b.Line && a.Start == b.Start && a.End == b.End &&
-		a.Length == b.Length && a.Style == b.Style
+		a.Length == b.Length && a.Style == b.Style &&
+		a.StartLabel == b.StartLabel && a.EndLabel == b.EndLabel && a.Series == b.Series
 }

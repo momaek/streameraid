@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> Red
+    Red --> Green : timer 30s
+    Green --> Yellow : timer 25s
+    Yellow --> Red : timer 5s
+
+    Red : Stop
+    Green : Go
+    Yellow : Slow down
+
+    classDef stop fill:#f87171,color:#fff
+    classDef go fill:#4ade80
+    classDef caution fill:#facc15
+    class Red stop
+    class Green go
+    class Yellow caution

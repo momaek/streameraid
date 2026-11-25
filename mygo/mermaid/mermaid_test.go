@@ -116,7 +116,7 @@ func TestSelectLabel(t *testing.T) {
 }
 
 func TestUnsupportedShowsCode(t *testing.T) {
-	src := "```mermaid\npie\n    \"Dogs\" : 3\n```\n"
+	src := "```mermaid\ngantt\n    title Dogs\n```\n"
 	md := hooked()
 	tt := ui.NewTester(func(c *ui.Context) { markdown.View(c, src, md) }, 400, 300)
 	tt.Frame()

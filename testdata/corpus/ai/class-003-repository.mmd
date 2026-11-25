@@ -1,0 +1,28 @@
+classDiagram
+    class Repository~T~ {
+        <<interface>>
+        +findById(id: string) T
+        +findAll() List~T~
+        +save(entity: T) void
+        +delete(id: string) void
+    }
+    class UserRepository {
+        -DataSource db
+        +findById(id: string) User
+        +findAll() List~User~
+        +save(entity: User) void
+        +delete(id: string) void
+    }
+    class UserService {
+        -UserRepository repo
+        +register(email, password) User
+        +login(email, password) Token
+    }
+    class User {
+        +String id
+        +String email
+        -String passwordHash
+    }
+    Repository~T~ <|.. UserRepository : implements
+    UserService --> UserRepository : uses
+    UserRepository ..> User : returns

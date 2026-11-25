@@ -1,0 +1,28 @@
+classDiagram
+    %% 图书馆管理系统
+    class 图书馆 {
+        +String 名称
+        +String 地址
+        +添加图书(书: 图书) void
+        +查找图书(关键字: String) List~图书~
+    }
+    class 图书 {
+        +String ISBN
+        +String 书名
+        +String 作者
+        +bool 是否借出
+    }
+    class 读者 {
+        +String 读者编号
+        +String 姓名
+        +借书(书: 图书) bool
+        +还书(书: 图书) void
+    }
+    class 借阅记录 {
+        +Date 借出日期
+        +Date 应还日期
+        +计算罚款() decimal
+    }
+    图书馆 "1" o-- "*" 图书 : 收藏
+    读者 "1" --> "*" 借阅记录 : 拥有
+    借阅记录 "*" --> "1" 图书 : 关联

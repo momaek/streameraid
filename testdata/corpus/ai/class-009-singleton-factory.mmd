@@ -1,0 +1,22 @@
+classDiagram
+    class Logger {
+        -Logger instance$
+        -Logger()
+        +getInstance()$ Logger
+        +log(msg: String) void
+    }
+    class VehicleFactory {
+        +createVehicle(type: String)$ Vehicle
+    }
+    class Vehicle {
+        <<abstract>>
+        +drive()* void
+    }
+    class Car
+    class Truck
+    Vehicle <|-- Car
+    Vehicle <|-- Truck
+    VehicleFactory ..> Vehicle : creates
+    Car : +drive() void
+    Truck : +drive() void
+    Truck : +int loadCapacity

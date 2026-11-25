@@ -1,0 +1,16 @@
+stateDiagram-v2
+    [*] --> Draft
+    Draft --> InReview : submit
+    InReview --> Approved : approve
+    InReview --> ChangesRequested : request changes
+    ChangesRequested --> Draft : revise
+    Approved --> Published : publish
+    Published --> Archived : archive
+    Archived --> [*]
+
+    note left of Draft : Author can edit freely
+    note right of InReview
+        At least two reviewers
+        must approve
+    end note
+    note right of Published : Visible to all users

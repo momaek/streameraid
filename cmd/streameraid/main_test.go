@@ -82,7 +82,7 @@ func TestErrors(t *testing.T) {
 		{"", []string{"draw"}, 2, "unknown command"},
 		{"", []string{"render", "a.mmd", "b.mmd"}, 2, "one input file"},
 		{"", []string{"render", "-nope"}, 2, "usage"},
-		{"pie\n\"a\": 1\n", []string{"render"}, 1, "unsupported"},
+		{"gantt\n  title a\n", []string{"render"}, 1, "unsupported"},
 		{"", []string{"render", "/no/such/file.mmd"}, 1, "no such file"},
 		{"", []string{"help"}, 0, "usage"},
 	} {

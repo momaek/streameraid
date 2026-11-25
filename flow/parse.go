@@ -129,7 +129,7 @@ func (p *parser) frontMatter(lines []string, complete bool) (int, bool) {
 			p.g.Title = unquote(strings.TrimSpace(v))
 		}
 	}
-	if complete {
+	if p.g.Final {
 		p.line = first + 1
 		p.text = lines[first]
 		p.problem("front matter is not closed with ---")
@@ -1225,7 +1225,9 @@ func unquote(s string) string { return label.Unquote(s) }
 // cleanLabel turns label markup into plain text.
 func cleanLabel(s string) string { return label.Clean(s) }
 
-// parseStyle reads CSS-like declarations: fill:#f9f,stroke:#333,stroke-width:4px.
+// ParseStyle reads CSS-like declarations: fill:#f9f,stroke:#333,stroke-width:4px.
+func ParseStyle(s string) Style { return parseStyle(s) }
+
 func parseStyle(s string) Style {
 	var st Style
 	depth := 0

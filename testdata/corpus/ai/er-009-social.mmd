@@ -1,0 +1,26 @@
+erDiagram
+    USERS ||--o{ FOLLOWS : follower
+    USERS ||--o{ FOLLOWS : followee
+    USERS ||--o{ POSTS : creates
+    POSTS ||--o{ LIKES : receives
+    USERS ||--o{ LIKES : gives
+    USERS {
+        bigint id PK
+        varchar handle UK
+        text bio
+    }
+    FOLLOWS {
+        bigint follower_id PK, FK
+        bigint followee_id PK, FK
+        timestamp created_at
+    }
+    POSTS {
+        bigint id PK
+        bigint user_id FK
+        text content
+        int like_count
+    }
+    LIKES {
+        bigint user_id PK, FK
+        bigint post_id PK, FK
+    }

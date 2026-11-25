@@ -1,0 +1,30 @@
+classDiagram
+    class PaymentProcessor {
+        <<interface>>
+        +charge(amount: Money) Receipt
+        +refund(receipt: Receipt) bool
+    }
+    class StripeProcessor {
+        -String apiKey
+        +charge(amount: Money) Receipt
+        +refund(receipt: Receipt) bool
+    }
+    class PayPalProcessor {
+        -String clientId
+        +charge(amount: Money) Receipt
+        +refund(receipt: Receipt) bool
+    }
+    class CheckoutService {
+        -PaymentProcessor processor
+        +checkout(cart: Cart) Receipt
+    }
+    class Money {
+        +long cents
+        +String currency
+    }
+    PaymentProcessor <|.. StripeProcessor
+    PaymentProcessor <|.. PayPalProcessor
+    CheckoutService --> PaymentProcessor : delegates to
+    PaymentProcessor ..> Money
+    classDef external fill:#fde68a,stroke:#b45309
+    cssClass "StripeProcessor,PayPalProcessor" external
